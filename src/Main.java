@@ -293,7 +293,7 @@ class AI
 				{
 					RowCol addrc = rc.move(add_rows[i], add_cols[i]);
 					if (table[addrc.row][addrc.col] != 0) continue;
-					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue; // “K“–‚·‚¬
+					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue;
 					table[addrc.row][addrc.col] = distance;
 					next.addFirst(addrc);
 				}
