@@ -29,6 +29,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main
 {
@@ -179,6 +181,15 @@ class StateScanner
 	}
 }
 
+class NinjutsuTypeUtil
+{
+	static Map<Integer, NinjutsuType> map = new HashMap<>();
+	public static NinjutsuType valueOf(int ordinal)
+	{
+		return map.get(ordinal);
+	}
+}
+
 enum NinjutsuType
 {
 	SPEED_UP,
@@ -188,7 +199,13 @@ enum NinjutsuType
 	THUNDERSTROKE_RIVAL_FIELD,
 	MAKE_MY_DUMMY,
 	MAKE_RIVAL_DUMMY,
-	TURN_CUTTING
+	TURN_CUTTING;
+	
+	
+	private NinjutsuType()
+	{
+		NinjutsuTypeUtil.map.put(ordinal(), this);
+	}
 }
 
 enum FieldObject
