@@ -28,9 +28,13 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Main
 {
@@ -296,7 +300,7 @@ class TurnState
 
 class AI
 {
-	public static final String NAME = "CopyNinja?";
+	public static final String NAME = "CopyNinja";
 	
 	private int[][] findSoulDistanceTable(FieldState fs)
 	{
@@ -400,12 +404,89 @@ class AI
 		}
 	}
 	
+	private RowCol findDropRock(FieldState old_fs, FieldState new_fs)
+	{
+		Set<RowCol> rocks = new HashSet<>();
+		List<RowCol> news = new ArrayList<>();
+		
+		for (int i = 0; i < old_fs.field_size.row; i++)
+		{
+			for (int j = 0; j < old_fs.field_size.col; j++)
+			{
+				if (old_fs.field[i][j] != FieldObject.ROCK) continue;
+				rocks.add(new RowCol(i, j));
+			}
+		}
+		for (int i = 0; i < new_fs.field_size.row; i++)
+		{
+			for (int j = 0; j < new_fs.field_size.col; j++)
+			{
+				if (new_fs.field[i][j] != FieldObject.ROCK) continue;
+				RowCol rock = new RowCol(i, j);
+				if (rocks.remove(rock) == false)
+				{
+					news.add(rock);
+				}
+			}
+		}
+		for (RowCol rock : rocks)
+		{
+			for (int i = 0; i < news.size(); i++)
+			{
+				if (rock.distanceTo(news.get(i)) != 1) continue;
+				news.remove(i);
+				break;
+			}
+		}
+		return news.get(0);
+	}
+	
+	private void useNinjutsu(TurnState ts, int ninjutsu_id)
+	{
+		StringBuilder cmd = new StringBuilder();
+		RowCol rc;
+		cmd.append(ninjutsu_id);
+		switch (NinjutsuTypeUtil.valueOf(ninjutsu_id))
+		{
+			case SPEED_UP:
+				break;
+			case DROP_ROCK_MY_FIELD:
+				rc = findDropRock(old_state.rival_state, ts.rival_state);
+				cmd.append(' '); cmd.append(rc);
+				break;
+			case DROP_ROCK_RIVAL_FIELD:
+				rc = findDropRock(old_state.my_state, ts.my_state);
+				cmd.append(' '); cmd.append(rc);
+				break;
+			case THUNDERSTROKE_MY_FIELD:
+			case THUNDERSTROKE_RIVAL_FIELD:
+			case MAKE_MY_DUMMY:
+			case MAKE_RIVAL_DUMMY:
+			case TURN_CUTTING:
+				return;
+		}
+		ninjutsu_command = cmd.toString();
+	}
+	
+	private void checkNinjutsu(TurnState ts)
+	{
+		for (int i = 0; i < ts.ninjutsu_kinds_count; i++)
+		{
+			if (ts.rival_state.ninjutsu_used_counts[i]
+					!= old_state.rival_state.ninjutsu_used_counts[i])
+			{
+				useNinjutsu(ts, i);
+				return;
+			}
+		}
+	}
+	
 	private void computeInner(TurnState ts)
 	{
 		if (old_state == null) return;
 		
 		computeKunoichRoots(ts);
-		
+		checkNinjutsu(ts);
 	}
 }
 
