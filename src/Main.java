@@ -267,7 +267,7 @@ class TurnState
 
 class AI
 {
-	public static final String NAME = "Leonardone_AI";
+	public static final String NAME = "CopyNinja?";
 	
 	private int[][] findSoulDistanceTable(FieldState fs)
 	{
@@ -343,8 +343,39 @@ class AI
 		old_state = ts;
 	}
 	
+	private String makeRootKunoichi(RowCol from, RowCol to)
+	{
+		StringBuilder root = new StringBuilder();
+		char ch = from.row > to.row ? 'U' : 'D';
+		for (int i = Math.abs(from.row - to.row); i > 0; i--)
+		{
+			root.append(ch);
+		}
+		ch = from.col > to.col ? 'L' : 'R';
+		for (int i = Math.abs(from.col - to.col); i > 0; i--)
+		{
+			root.append(ch);
+		}
+		return root.toString();
+	}
+	
+	private void computeKunoichRoots(TurnState ts)
+	{
+		for (int i = 0; i < kunoichi_commands.length; i++)
+		{
+			kunoichi_commands[i] =
+				makeRootKunoichi(
+					old_state.rival_state.kunoichis[i].pos,
+					ts.rival_state.kunoichis[i].pos
+				);
+		}
+	}
+	
 	private void computeInner(TurnState ts)
 	{
+		if (old_state == null) return;
+		
+		computeKunoichRoots(ts);
 		
 	}
 }
