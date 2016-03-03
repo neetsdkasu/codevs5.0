@@ -49,7 +49,14 @@ public class Main
 				break;
 			}
 			
-			ai.compute(ts);
+			try
+			{
+				ai.compute(ts);
+			}
+			catch (Throwable ex)
+			{
+				ex.printStackTrace();
+			}
 			
 			// output
 			if (ai.existsNinjutsu())
