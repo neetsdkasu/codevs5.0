@@ -226,10 +226,15 @@ class RowCol
 		if (!o.getClass().equals(getClass())) return false;
 		return hashCode() == o.hashCode();
 	}
+	public String toString() { return row + " " + col; }
 	
 	public RowCol move(int add_row, int add_col)
 	{
 		return new RowCol(row + add_row, col + add_col);
+	}
+	public int distanceTo(RowCol rc)
+	{
+		return Math.abs(row - rc.row) + Math.abs(col - rc.col);
 	}
 }
 
