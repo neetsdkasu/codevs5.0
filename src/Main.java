@@ -267,7 +267,7 @@ class TurnState
 
 class AI
 {
-	public static final String NAME = "NEETSDKASU";
+	public static final String NAME = "Leonardone_AI";
 	
 	private int[][] findSoulDistanceTable(FieldState fs)
 	{
@@ -339,11 +339,11 @@ class AI
 	public void compute(TurnState ts)
 	{
 		init(ts);
-		compute_innner(ts);
+		computeInner(ts);
 		old_state = ts;
 	}
 	
-	private void compute_innner(TurnState ts)
+	private void computeInner(TurnState ts)
 	{
 		
 	}
