@@ -269,7 +269,7 @@ class AI
 {
 	public static final String NAME = "NEETSDKASU";
 	
-	int[][] findSoulDistanceTable(FieldState fs)
+	private int[][] findSoulDistanceTable(FieldState fs)
 	{
 		RowCol size = fs.field_size;
 		FieldObject[][] field = fs.field;
@@ -304,24 +304,48 @@ class AI
 		return table;
 	}
 	
-	public void compute(TurnState ts)
+	private TurnState old_state = null;
+	private String    ninjutsu_command;
+	private String[]  kunoichi_commands;
+	
+	private void init(TurnState ts)
 	{
-		int[][] soul_distance = findSoulDistanceTable(ts.my_state);
+		ninjutsu_command = null;
+		if (kunoichi_commands == null)
+		{
+			kunoichi_commands = new String[ts.my_state.kunoichis.length];
+		}
+		for (int i = 0; i < kunoichi_commands.length; i++)
+		{
+			kunoichi_commands[i] = "";
+		}
 	}
 	
 	public boolean existsNinjutsu()
 	{
-		return false;
+		return ninjutsu_command != null;
 	}
 	
 	public String getNinjutsuCommand()
 	{
-		return "";
+		return ninjutsu_command;
 	}
 	
 	public String getKunoichiCommand(int id)
 	{
-		return "";
+		return kunoichi_commands[id];
+	}
+
+	public void compute(TurnState ts)
+	{
+		init(ts);
+		compute_innner(ts);
+		old_state = ts;
+	}
+	
+	private void compute_innner(TurnState ts)
+	{
+		
 	}
 }
 
