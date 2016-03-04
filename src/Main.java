@@ -289,6 +289,10 @@ class RowCol
 	{
 		return Math.abs(row - rc.row) + Math.abs(col - rc.col);
 	}
+	public RowCol subtractFrom(RowCol rc)
+	{
+		return rc.move(-row, -col);
+	}
 }
 
 class Unit
