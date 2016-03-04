@@ -521,6 +521,102 @@ class AI
 		return findDropRock(new_rocks, old_rocks, ninjutsu_rock);
 	}
 	
+	private RowCol findDummyAppearance(FieldState old_fs, FieldState new_fs, RowCol ninjutsu_dummy)
+	{
+		RowCol lt1 = new RowCol(0, 0), rb1 = old_fs.field_size.move(-1, -1),
+			lt2 = lt1.move(0, 0), rb2 = rb1.move(0, 0), df;
+		int i = 0, j = 0;
+		while (i < old_fs.dogs.length && j < new_fs.dogs.length)
+		{
+			Unit x = old_fs.dogs[i], y = new_fs.dogs[j];
+			if (x.id < y.id)
+			{
+				i++;
+			}
+			else if (x.id > y.id)
+			{
+				j++;
+			}
+			else
+			{
+				i++; j++;
+				df = x.pos.subtractFrom(y.pos);
+				if (df.row < 0)
+				{
+					if (rb1.row > y.pos.row)
+					{
+						rb1 = new RowCol(y.pos.row, rb1.col);
+					}
+					else if (y.pos.row < lt1.row && rb2.row > y.pos.row)
+					{
+						rb2 = new RowCol(y.pos.row, rb2.col);
+					}
+				}
+				else if (df.row > 0)
+				{
+					if (lt1.row < y.pos.row)
+					{
+						lt1 = new RowCol(y.pos.row, lt1.col);
+					}
+					else if (y.pos.row > rb1.row && lt2.row < y.pos.row)
+					{
+						lt2 = new RowCol(y.pos.row, lt2.col);
+					}
+				}
+				else if (df.col < 0)
+				{
+					if (rb1.col > y.pos.col)
+					{
+						rb1 = new RowCol(rb1.row, y.pos.col);
+					}
+					else if (y.pos.col < lt1.col && rb2.col > y.pos.col)
+					{
+						rb2 = new RowCol(rb2.row, y.pos.col);
+					}
+				}
+				else if (df.col > 0)
+				{
+					if (lt1.col < y.pos.col)
+					{
+						lt1 = new RowCol(lt1.row, y.pos.col);
+					}
+					else if (y.pos.col > rb1.col && lt2.col < y.pos.col)
+					{
+						lt2 = new RowCol(lt2.row, y.pos.col);
+					}
+				}
+			}
+		}
+		df = lt1.subtractFrom(rb1);
+		if (df.row < 0 || df.col < 0)
+		{
+			df = new RowCol(0, 0);
+			j = old_fs.kunoichis.length;
+			for (i = 0; i < j; i++)
+			{
+				df = old_fs.kunoichis[i].pos.move(df.row, df.col);
+			}
+			return new RowCol(df.row / j, df.col / j); 
+		}
+		if (ninjutsu_dummy == null) return new RowCol((lt1.row+rb1.row)/2,(lt1.col+rb1.col)/2);
+		df = lt1.subtractFrom(ninjutsu_dummy);
+		if (df.row < 0 || df.col < 0) return new RowCol((lt1.row+rb1.row)/2,(lt1.col+rb1.col)/2);
+		df = ninjutsu_dummy.subtractFrom(rb1);
+		if (df.row < 0 || df.col < 0) return new RowCol((lt1.row+rb1.row)/2,(lt1.col+rb1.col)/2);
+		df = lt2.subtractFrom(rb2);
+		if (df.row < 0 || df.col < 0)
+		{
+			df = new RowCol(0, 0);
+			j = old_fs.kunoichis.length;
+			for (i = 0; i < j; i++)
+			{
+				df = old_fs.kunoichis[i].pos.move(df.row, df.col);
+			}
+			return new RowCol(df.row / j, df.col / j); 
+		}
+		return new RowCol((lt2.row+rb2.row)/2,(lt2.col+rb2.col)/2);
+	}
+	
 	private void useNinjutsu(TurnState ts, int ninjutsu_id)
 	{
 		ninjutsu_command.type = NinjutsuTypeUtil.valueOf(ninjutsu_id);
@@ -546,7 +642,13 @@ class AI
 					old_ninjutsu_command.type == NinjutsuType.THUNDERSTROKE_MY_FIELD ? old_ninjutsu_command.pos : null);
 				break;
 			case MAKE_MY_DUMMY:
+				ninjutsu_command.pos = findDummyAppearance(old_state.rival_state, ts.rival_state,
+					old_ninjutsu_command.type == NinjutsuType.MAKE_RIVAL_DUMMY ? old_ninjutsu_command.pos : null);
+				break;
 			case MAKE_RIVAL_DUMMY:
+				ninjutsu_command.pos = findDummyAppearance(old_state.my_state, ts.my_state,
+					old_ninjutsu_command.type == NinjutsuType.MAKE_MY_DUMMY ? old_ninjutsu_command.pos : null);
+				break;
 			case TURN_CUTTING:
 				return;
 		}
