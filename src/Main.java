@@ -302,7 +302,7 @@ class AI
 	private String    ninjutsu_command;
 	private String[]  kunoichi_commands;
 	
-	private void init(TurnState ts)
+	private void initCompute(TurnState ts)
 	{
 		ninjutsu_command = null;
 		if (kunoichi_commands == null)
@@ -332,7 +332,8 @@ class AI
 
 	public void compute(TurnState ts)
 	{
-		init(ts);
+		initCompute(ts);
+		
 		computeInner(ts);
 		old_state = ts;
 	}
