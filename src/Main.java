@@ -212,6 +212,38 @@ enum NinjutsuType
 	}
 }
 
+class Ninjutsu
+{
+	public NinjutsuType type = null;
+	public RowCol pos = null;
+	public String toString()
+	{
+		if (type == null) return "";
+		StringBuilder sb = new StringBuilder();
+		sb.append(type.ordinal());
+		if (pos != null)
+		{
+			sb.append(' ');
+			sb.append(pos.toString());
+		}
+		return sb.toString();
+	}
+	public void clear()
+	{
+		type = null;
+		pos = null;
+	}
+	public boolean exists()
+	{
+		return type != null;
+	}
+	public void copyFrom(Ninjutsu src)
+	{
+		type = src.type;
+		pos = src.pos;
+	}
+}
+
 enum FieldObject
 {
 	WALL, FLOOR, ROCK;
@@ -338,30 +370,32 @@ class AI
 	}
 	
 	private TurnState old_state = null;
-	private String    ninjutsu_command;
-	private String[]  kunoichi_commands;
+	private final Ninjutsu  ninjutsu_command = new Ninjutsu(), old_ninjutsu_command = new Ninjutsu();
+	private String[]  kunoichi_commands = null, old_kunoichi_commands = null;;
 	
 	private void initCompute(TurnState ts)
 	{
-		ninjutsu_command = null;
+		ninjutsu_command.clear();
 		if (kunoichi_commands == null)
 		{
 			kunoichi_commands = new String[ts.my_state.kunoichis.length];
+			old_kunoichi_commands = new String[kunoichi_commands.length];
 		}
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
 			kunoichi_commands[i] = "";
 		}
+		checkRockChanges(ts);
 	}
 	
 	public boolean existsNinjutsu()
 	{
-		return ninjutsu_command != null;
+		return ninjutsu_command.exists();
 	}
 	
 	public String getNinjutsuCommand()
 	{
-		return ninjutsu_command;
+		return ninjutsu_command.toString();
 	}
 	
 	public String getKunoichiCommand(int id)
@@ -374,7 +408,13 @@ class AI
 		initCompute(ts);
 		
 		computeInner(ts);
+		
 		old_state = ts;
+		old_ninjutsu_command.copyFrom(ninjutsu_command);
+		for (int i = 0; i < kunoichi_commands.length; i++)
+		{
+			old_kunoichi_commands[i] = kunoichi_commands[i];
+		}
 	}
 	
 	private String makeRootKunoichi(RowCol from, RowCol to)
@@ -405,17 +445,23 @@ class AI
 		}
 	}
 	
-	private RowCol findDropRock(FieldState old_fs, FieldState new_fs)
+	private List<RowCol>
+		old_my_rocks = new ArrayList<>(),
+		new_my_rocks = new ArrayList<>(),
+		old_rival_rocks = new ArrayList<>(),
+		new_rival_rocks = new ArrayList<>();
+	
+	private void findRockChanges(FieldState old_fs, FieldState new_fs, List<RowCol> old_rocks, List<RowCol> new_rocks)
 	{
-		Set<RowCol> rocks = new HashSet<>();
-		List<RowCol> news = new ArrayList<>();
-		
+		old_rocks.clear();
+		new_rocks.clear();
+		Set<RowCol> old_all_rocks = new HashSet<>();
 		for (int i = 0; i < old_fs.field_size.row; i++)
 		{
 			for (int j = 0; j < old_fs.field_size.col; j++)
 			{
 				if (old_fs.field[i][j] != FieldObject.ROCK) continue;
-				rocks.add(new RowCol(i, j));
+				old_all_rocks.add(new RowCol(i, j));
 			}
 		}
 		for (int i = 0; i < new_fs.field_size.row; i++)
@@ -424,40 +470,64 @@ class AI
 			{
 				if (new_fs.field[i][j] != FieldObject.ROCK) continue;
 				RowCol rock = new RowCol(i, j);
-				if (rocks.remove(rock) == false)
+				if (old_all_rocks.remove(rock) == false)
 				{
-					news.add(rock);
+					new_rocks.add(rock);
 				}
 			}
 		}
-		for (RowCol rock : rocks)
+		old_rocks.addAll(old_all_rocks);
+	}
+	
+	private void checkRockChanges(TurnState ts)
+	{
+		findRockChanges(old_state.my_state, ts.my_state, old_my_rocks, new_my_rocks);
+		findRockChanges(old_state.rival_state, ts.rival_state, old_rival_rocks, new_rival_rocks);
+	}
+	
+	private RowCol findDropRock(List<RowCol> old_rocks, List<RowCol> new_rocks, RowCol ninjutsu_rock)
+	{
+		int new_count = new_rocks.size();
+		boolean[] flag = new boolean[new_count];
+		int idx = new_count * (new_count - 1) / 2;
+		if (ninjutsu_rock != null)
 		{
-			for (int i = 0; i < news.size(); i++)
+			int exidx = new_rocks.indexOf(ninjutsu_rock);
+			if (exidx >= 0)
 			{
-				if (rock.distanceTo(news.get(i)) != 1) continue;
-				news.remove(i);
+				flag[exidx] = true;
+				idx -= exidx;
+			}
+		}
+		for (RowCol rock : old_rocks)
+		{
+			for (int i = 0; i < new_count; i++)
+			{
+				if (flag[i]) continue;
+				if (rock.distanceTo(new_rocks.get(i)) != 1) continue;
+				flag[i] = true;
+				idx -= i;
 				break;
 			}
 		}
-		return news.get(0);
+		return new_rocks.get(idx);
 	}
 	
 	private void useNinjutsu(TurnState ts, int ninjutsu_id)
 	{
-		StringBuilder cmd = new StringBuilder();
-		RowCol rc;
-		cmd.append(ninjutsu_id);
-		switch (NinjutsuTypeUtil.valueOf(ninjutsu_id))
+		ninjutsu_command.type = NinjutsuTypeUtil.valueOf(ninjutsu_id);
+		
+		switch (ninjutsu_command.type)
 		{
 			case SPEED_UP:
 				break;
 			case DROP_ROCK_MY_FIELD:
-				rc = findDropRock(old_state.rival_state, ts.rival_state);
-				cmd.append(' '); cmd.append(rc);
+				ninjutsu_command.pos = findDropRock(old_rival_rocks, new_rival_rocks,
+					old_ninjutsu_command.type == NinjutsuType.DROP_ROCK_RIVAL_FIELD ? old_ninjutsu_command.pos : null);
 				break;
 			case DROP_ROCK_RIVAL_FIELD:
-				rc = findDropRock(old_state.my_state, ts.my_state);
-				cmd.append(' '); cmd.append(rc);
+				ninjutsu_command.pos = findDropRock(old_my_rocks, new_my_rocks,
+					old_ninjutsu_command.type == NinjutsuType.DROP_ROCK_MY_FIELD ? old_ninjutsu_command.pos : null);
 				break;
 			case THUNDERSTROKE_MY_FIELD:
 			case THUNDERSTROKE_RIVAL_FIELD:
@@ -466,7 +536,6 @@ class AI
 			case TURN_CUTTING:
 				return;
 		}
-		ninjutsu_command = cmd.toString();
 	}
 	
 	private void checkNinjutsu(TurnState ts)
