@@ -448,7 +448,7 @@ class AI
 		}
 	}
 	
-	private List<RowCol>
+	private final List<RowCol>
 		old_my_rocks = new ArrayList<>(),
 		new_my_rocks = new ArrayList<>(),
 		old_rival_rocks = new ArrayList<>(),
