@@ -385,7 +385,6 @@ class AI
 		{
 			kunoichi_commands[i] = "";
 		}
-		checkRockChanges(ts);
 	}
 	
 	public boolean existsNinjutsu()
@@ -565,6 +564,8 @@ class AI
 	private void computeInner(TurnState ts)
 	{
 		if (old_state == null) return;
+		
+		checkRockChanges(ts);
 		
 		computeKunoichRoots(ts);
 		checkNinjutsu(ts);
