@@ -513,6 +513,11 @@ class AI
 		return new_rocks.get(idx);
 	}
 	
+	private RowCol findDisappearRock(List<RowCol> old_rocks, List<RowCol> new_rocks, RowCol ninjutsu_rock)
+	{
+		return findDropRock(new_rocks, old_rocks, ninjutsu_rock);
+	}
+	
 	private void useNinjutsu(TurnState ts, int ninjutsu_id)
 	{
 		ninjutsu_command.type = NinjutsuTypeUtil.valueOf(ninjutsu_id);
@@ -530,7 +535,13 @@ class AI
 					old_ninjutsu_command.type == NinjutsuType.DROP_ROCK_MY_FIELD ? old_ninjutsu_command.pos : null);
 				break;
 			case THUNDERSTROKE_MY_FIELD:
+				ninjutsu_command.pos = findDisappearRock(old_rival_rocks, new_rival_rocks,
+					old_ninjutsu_command.type == NinjutsuType.THUNDERSTROKE_RIVAL_FIELD ? old_ninjutsu_command.pos : null);
+				break;
 			case THUNDERSTROKE_RIVAL_FIELD:
+				ninjutsu_command.pos = findDisappearRock(old_my_rocks, new_my_rocks,
+					old_ninjutsu_command.type == NinjutsuType.THUNDERSTROKE_MY_FIELD ? old_ninjutsu_command.pos : null);
+				break;
 			case MAKE_MY_DUMMY:
 			case MAKE_RIVAL_DUMMY:
 			case TURN_CUTTING:
