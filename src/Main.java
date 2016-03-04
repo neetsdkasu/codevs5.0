@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -633,6 +634,33 @@ class AI
 		return new RowCol((lt2.row+rb2.row)/2,(lt2.col+rb2.col)/2);
 	}
 	
+	private int findTurningCuttingKunoichi(FieldState old_fs, FieldState new_fs)
+	{
+		Set<Unit> dogs = new HashSet<>(Arrays.asList(old_fs.dogs));
+		for (Unit dog : new_fs.dogs)
+		{
+			dogs.remove(dog);
+		}
+		int[] values = new int[old_fs.kunoichis.length];
+		for (int i = 0; i < values.length; i++)
+		{
+			Unit kunoichi = old_fs.kunoichis[i];
+			for (Unit dog : dogs)
+			{
+				values[i] += dog.pos.distanceTo(kunoichi.pos);
+			}
+		}
+		int id = 0;
+		for (int i = 1; i < values.length; i++)
+		{
+			if (values[i] < values[id])
+			{
+				id = i;
+			}
+		}
+		return id;
+	}
+	
 	private void useNinjutsu(TurnState ts, int ninjutsu_id)
 	{
 		ninjutsu_command.type = NinjutsuTypeUtil.valueOf(ninjutsu_id);
@@ -666,7 +694,8 @@ class AI
 					old_ninjutsu_command.type == NinjutsuType.MAKE_MY_DUMMY ? old_ninjutsu_command.pos : null);
 				break;
 			case TURN_CUTTING:
-				return;
+				ninjutsu_command.kunoichi_id = findTurningCuttingKunoichi(old_state.rival_state, ts.rival_state);
+				break;
 		}
 	}
 	
