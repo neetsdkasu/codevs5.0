@@ -301,13 +301,21 @@ class RowCol
 
 class Unit
 {
-	public int id;
-	public RowCol pos;
+	public final int id;
+	public final RowCol pos;
 	
 	public Unit(int[] values)
 	{
 		id = values[0];
 		pos = new RowCol(values, 1);
+	}
+	public int hashCode() { return id; }
+	public boolean equals(Object o)
+	{
+		if (this == o) return true;
+		if (o == null) return false;
+		if (!o.getClass().equals(getClass())) return false;
+		return hashCode() == o.hashCode();
 	}
 }
 
