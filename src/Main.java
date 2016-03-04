@@ -216,6 +216,7 @@ class Ninjutsu
 {
 	public NinjutsuType type = null;
 	public RowCol pos = null;
+	public int kunoichi_id = -1;
 	public String toString()
 	{
 		if (type == null) return "";
@@ -226,12 +227,18 @@ class Ninjutsu
 			sb.append(' ');
 			sb.append(pos.toString());
 		}
+		if (kunoichi_id >= 0)
+		{
+			sb.append(' ');
+			sb.append(kunoichi_id);
+		}
 		return sb.toString();
 	}
 	public void clear()
 	{
 		type = null;
 		pos = null;
+		kunoichi_id = -1;
 	}
 	public boolean exists()
 	{
@@ -241,6 +248,7 @@ class Ninjutsu
 	{
 		type = src.type;
 		pos = src.pos;
+		kunoichi_id = src.kunoichi_id;
 	}
 }
 
