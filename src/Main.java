@@ -210,6 +210,42 @@ enum NinjutsuType
 
 class Ninjutsu
 {
+	public NinjutsuType type = null;
+	public RowCol pos = null;
+	public int kunoichi_id = -1;
+	public String toString()
+	{
+		if (type == null) return "";
+		StringBuilder sb = new StringBuilder();
+		sb.append(type.ordinal());
+		if (pos != null)
+		{
+			sb.append(' ');
+			sb.append(pos.toString());
+		}
+		if (kunoichi_id >= 0)
+		{
+			sb.append(' ');
+			sb.append(kunoichi_id);
+		}
+		return sb.toString();
+	}
+	public void clear()
+	{
+		type = null;
+		pos = null;
+		kunoichi_id = -1;
+	}
+	public boolean exists()
+	{
+		return type != null;
+	}
+	public void copyFrom(Ninjutsu src)
+	{
+		type = src.type;
+		pos = src.pos;
+		kunoichi_id = src.kunoichi_id;
+	}
 }
 
 enum FieldObject
