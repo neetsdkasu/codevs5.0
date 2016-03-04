@@ -186,15 +186,6 @@ class StateScanner
 	}
 }
 
-class NinjutsuTypeUtil
-{
-	static Map<Integer, NinjutsuType> map = new HashMap<>();
-	public static NinjutsuType valueOf(int ordinal)
-	{
-		return map.get(ordinal);
-	}
-}
-
 enum NinjutsuType
 {
 	SPEED_UP,
@@ -206,10 +197,19 @@ enum NinjutsuType
 	MAKE_RIVAL_DUMMY,
 	TURN_CUTTING;
 	
-	
-	private NinjutsuType()
+	public static NinjutsuType valueOf(int ordinal)
 	{
-		NinjutsuTypeUtil.map.put(ordinal(), this);
+		switch (ordinal)
+		{
+			case 0: return SPEED_UP;
+			case 1: return DROP_ROCK_MY_FIELD;
+			case 2: return DROP_ROCK_RIVAL_FIELD;
+			case 3: return THUNDERSTROKE_MY_FIELD;
+			case 4: return THUNDERSTROKE_RIVAL_FIELD;
+			case 5: return MAKE_MY_DUMMY;
+			case 6: return MAKE_RIVAL_DUMMY;
+			default: return TURN_CUTTING;
+		}
 	}
 }
 
@@ -663,7 +663,7 @@ class AI
 	
 	private void useNinjutsu(TurnState ts, int ninjutsu_id)
 	{
-		ninjutsu_command.type = NinjutsuTypeUtil.valueOf(ninjutsu_id);
+		ninjutsu_command.type = NinjutsuType.valueOf(ninjutsu_id);
 		
 		switch (ninjutsu_command.type)
 		{
