@@ -437,30 +437,173 @@ class AI
 		}
 	}
 	
-	private String makeRootKunoichi(RowCol from, RowCol to)
+	private static final int
+		KUNOICHI_MOVABLE_NO = 0,
+		KUNOICHI_MOVABLE_YES = 1,
+		KUNOICHI_MOVABLE_GET_SOUL = 4 | KUNOICHI_MOVABLE_YES,
+		KUNOICHI_MOVABLE_PUSH_ROCK = 16 | KUNOICHI_MOVABLE_YES;
+	
+	private int canKunoichiMove(RowCol from, int add_row, int add_col,  FieldState fs)
+	{
+		RowCol to = from.move(add_row, add_col);
+		switch (fs.field[to.row][to.col])
+		{
+			case FLOOR:
+				for (RowCol soul : fs.souls)
+				{
+					if (soul.equals(to))
+					{
+						return KUNOICHI_MOVABLE_GET_SOUL;
+					}
+				}
+				return KUNOICHI_MOVABLE_YES;
+			case ROCK: 
+				if (fs.field[to.row + add_row][to.col + add_col] == FieldObject.FLOOR)
+				{
+					for (RowCol soul : fs.souls)
+					{
+						if (soul.equals(to))
+						{
+							return KUNOICHI_MOVABLE_GET_SOUL | KUNOICHI_MOVABLE_PUSH_ROCK;
+						}
+					}
+					return KUNOICHI_MOVABLE_PUSH_ROCK;
+				}
+				break;
+		}
+		return KUNOICHI_MOVABLE_NO;
+	}
+	
+	private void searchRootKunoichi(int n, RowCol from, RowCol to, FieldState fs, String root, int state, List<String> roots)
+	{
+		if (from.equals(to))
+		{
+			String x = root;
+			for (int i = 0; i < n; i++)
+			{
+				x += "N";
+			}
+			if ((state & KUNOICHI_MOVABLE_GET_SOUL) > 0)
+			{
+				for (int i = (state >> 2) & 3; i > 0; i--)
+				{
+					x += "  S";
+				}
+			}
+			if ((state & KUNOICHI_MOVABLE_PUSH_ROCK) > 0)
+			{
+				for (int i = (state >> 4) & 3; i > 0; i--)
+				{
+					x += " P";
+				}
+			}
+			roots.add(x);
+		}
+		if (n == 0) return;
+		int movable;
+		if ((movable = canKunoichiMove(from, 1, 0, fs)) != KUNOICHI_MOVABLE_NO)
+		{
+			searchRootKunoichi(n - 1, from.move(1, 0), to, fs, root + "D", state + movable, roots);
+		}
+		if ((movable = canKunoichiMove(from, -1, 0, fs)) != KUNOICHI_MOVABLE_NO)
+		{
+			searchRootKunoichi(n - 1, from.move(-1, 0), to, fs, root + "U", state + movable, roots);
+		}
+		if ((movable = canKunoichiMove(from, 0, 1, fs)) != KUNOICHI_MOVABLE_NO)
+		{
+			searchRootKunoichi(n - 1, from.move(0, 1), to, fs, root + "R", state + movable, roots);
+		}
+		if ((movable = canKunoichiMove(from, 0, -1, fs)) != KUNOICHI_MOVABLE_NO)
+		{
+			searchRootKunoichi(n - 1, from.move(0, -1), to, fs, root + "L", state + movable, roots);
+		}
+	}
+	
+	private String makeRootKunoichi(RowCol from, RowCol to, FieldState fs, boolean rock_moved)
 	{
 		StringBuilder root = new StringBuilder();
-		char ch = from.row > to.row ? 'U' : 'D';
-		for (int i = Math.abs(from.row - to.row); i > 0; i--)
+		RowCol df = from.subtractFrom(to);
+		if (df.col == 0 && Math.abs(df.row) > 1)
 		{
-			root.append(ch);
+			char ch = df.row < 0 ? 'U' : 'D';
+			for (int i = Math.abs(df.row); i > 0; i--)
+			{
+				root.append(ch);
+			}
 		}
-		ch = from.col > to.col ? 'L' : 'R';
-		for (int i = Math.abs(from.col - to.col); i > 0; i--)
+		else if (df.row == 0 && Math.abs(df.col) > 1)
 		{
-			root.append(ch);
+			char ch =df.col < 0 ? 'L' : 'R';
+			for (int i = Math.abs(df.col); i > 0; i--)
+			{
+				root.append(ch);
+			}
+		}
+		else
+		{
+			List<String> roots = new ArrayList<>();
+			searchRootKunoichi(ninjutsu_command.type == NinjutsuType.SPEED_UP ? 3 : 2, from, to, fs, "", 0, roots);
+			if (roots.isEmpty() == false)
+			{
+				String x = "";
+				for (String y : roots)
+				{
+					if (y.length() > x.length())
+					{
+						if (y.charAt(y.length() - 1) == 'P' && rock_moved == false)
+						{
+							continue;
+						}
+						x = y;
+					}
+				}
+				if (x.length() > 1)
+				{
+					String[] xs = x.split(" ");
+					return xs[0];
+				}
+			}
+			char ch = df.row < 0 ? 'U' : 'D';
+			for (int i = Math.abs(df.row); i > 0; i--)
+			{
+				root.append(ch);
+			}
+			ch = df.col < 0 ? 'L' : 'R';
+			for (int i = Math.abs(df.col); i > 0; i--)
+			{
+				root.append(ch);
+			}
 		}
 		return root.toString();
 	}
 	
 	private void computeKunoichRoots(TurnState ts)
 	{
+		int rocks = new_rival_rocks.size() - old_rival_rocks.size();
+		if (ninjutsu_command.type == NinjutsuType.DROP_ROCK_MY_FIELD)
+		{
+			rocks -= 1;
+		}
+		if (old_ninjutsu_command.type == NinjutsuType.DROP_ROCK_RIVAL_FIELD)
+		{
+			rocks -= 1;
+		}
+		if (ninjutsu_command.type == NinjutsuType.THUNDERSTROKE_MY_FIELD)
+		{
+			rocks += 1;
+		}
+		if (old_ninjutsu_command.type == NinjutsuType.THUNDERSTROKE_RIVAL_FIELD)
+		{
+			rocks += 1;
+		}
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
 			kunoichi_commands[i] =
 				makeRootKunoichi(
 					old_state.rival_state.kunoichis[i].pos,
-					ts.rival_state.kunoichis[i].pos
+					ts.rival_state.kunoichis[i].pos,
+					old_state.rival_state,
+					rocks > 0
 				);
 		}
 	}
@@ -718,8 +861,8 @@ class AI
 		
 		checkRockChanges(ts);
 		
-		computeKunoichRoots(ts);
 		checkNinjutsu(ts);
+		computeKunoichRoots(ts);
 	}
 }
 
