@@ -208,6 +208,10 @@ enum NinjutsuType
 	}
 }
 
+class Ninjutsu
+{
+}
+
 enum FieldObject
 {
 	WALL, FLOOR, ROCK;
