@@ -250,7 +250,7 @@ class Ninjutsu
 
 enum FieldObject
 {
-	WALL, FLOOR, ROCK;
+	WALL, FLOOR, ROCK, DOG, DANGEROUS_ZONE;
 	
 	public static FieldObject valueOf(char ch)
 	{
@@ -430,10 +430,34 @@ class AI
 		}
 		return table;
 	}
+	
+	private void mappingDogs(FieldState fs)
+	{
+		for (Unit dog : fs.dogs)
+		{
+			if (fs.field[dog.pos.row][dog.pos.col] != FieldObject.FLOOR) continue;
+			fs.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+		}
+		for (int i = 1; i < fs.field_size.row - 1; i++)
+		{
+			for (int j = 1; j < fs.field_size.col - 1; j++)
+			{
+				if (fs.field[i][j] != FieldObject.FLOOR) continue;
+				if (fs.field[i + 1][j] == FieldObject.DOG
+					|| fs.field[i - 1][j] == FieldObject.DOG
+					|| fs.field[i][j + 1] == FieldObject.DOG
+					|| fs.field[i][j - 1] == FieldObject.DOG)
+				{
+					fs.field[i][j] = FieldObject.DANGEROUS_ZONE;
+				}
+			}
+		}
+	}
 		
 	private void computeInner(TurnState ts)
 	{
-		
+		mappingDogs(ts.my_state);
+		int[][] soulsmap = findSoulDistanceTable(ts.my_state);
 	}
 }
 
