@@ -297,42 +297,7 @@ class TurnState
 class AI
 {
 	public static final String NAME = "Leonardone_AI";
-	
-	private int[][] findSoulDistanceTable(FieldState fs)
-	{
-		RowCol size = fs.field_size;
-		FieldObject[][] field = fs.field;
-		int[][] table = new int[size.row][size.col];
-		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
-		for (RowCol rc : fs.souls)
-		{
-			table[rc.row][rc.col] = 1;
-			cur.addFirst(rc);
-		}
-		int[] add_rows = {1, 0, -1,  0};
-		int[] add_cols = {0, 1,  0, -1};
-		int distance = 1;
-		while (cur.isEmpty() == false)
-		{
-			distance++;
-			next.clear();
-			for (RowCol rc : cur)
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					RowCol addrc = rc.move(add_rows[i], add_cols[i]);
-					if (table[addrc.row][addrc.col] != 0) continue;
-					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue;
-					table[addrc.row][addrc.col] = distance;
-					next.addFirst(addrc);
-				}
-			}
-			// swap cur next
-			temp = cur; cur = next; next = temp;
-		}
-		return table;
-	}
-	
+
 	private TurnState old_state = null;
 	private String    ninjutsu_command;
 	private String[]  kunoichi_commands;
@@ -372,6 +337,41 @@ class AI
 		old_state = ts;
 	}
 	
+	private int[][] findSoulDistanceTable(FieldState fs)
+	{
+		RowCol size = fs.field_size;
+		FieldObject[][] field = fs.field;
+		int[][] table = new int[size.row][size.col];
+		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
+		for (RowCol rc : fs.souls)
+		{
+			table[rc.row][rc.col] = 1;
+			cur.addFirst(rc);
+		}
+		int[] add_rows = {1, 0, -1,  0};
+		int[] add_cols = {0, 1,  0, -1};
+		int distance = 1;
+		while (cur.isEmpty() == false)
+		{
+			distance++;
+			next.clear();
+			for (RowCol rc : cur)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					RowCol addrc = rc.move(add_rows[i], add_cols[i]);
+					if (table[addrc.row][addrc.col] != 0) continue;
+					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue;
+					table[addrc.row][addrc.col] = distance;
+					next.addFirst(addrc);
+				}
+			}
+			// swap cur next
+			temp = cur; cur = next; next = temp;
+		}
+		return table;
+	}
+		
 	private void computeInner(TurnState ts)
 	{
 		
