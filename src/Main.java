@@ -348,7 +348,7 @@ class TurnState
 
 class AI
 {
-	public static final String NAME = "Leonardone_AI";
+	public static final String NAME = "DefeatRandomAI";
 
 	private TurnState old_state = null;
 	private final Ninjutsu  ninjutsu_command = new Ninjutsu(), old_ninjutsu_command = new Ninjutsu();
@@ -404,6 +404,7 @@ class AI
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
 		for (RowCol rc : fs.souls)
 		{
+			if (fs.field[rc.row][rc.col] != FieldObject.FLOOR) continue;
 			table[rc.row][rc.col] = 1;
 			cur.addFirst(rc);
 		}
@@ -453,11 +454,49 @@ class AI
 			}
 		}
 	}
-		
+	
+	private void searchAllKunoichiRoot(int[][] souls_table, int s, int n, RowCol pos, String root, Map<Integer, String> roots)
+	{
+		if (s != n && souls_table[pos.row][pos.col] == 0) return;
+		roots.put(souls_table[pos.row][pos.col], root);
+		if (n == 0) return;
+		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(1, 0),  root + "D", roots);
+		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(-1, 0), root + "U", roots);
+		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, 1),  root + "R", roots);
+		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, -1), root + "L", roots);
+	}
+	
+	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi)
+	{
+		Map<Integer, String> roots = new HashMap<>();
+		searchAllKunoichiRoot(souls_table, 2, 2, kunoichi.pos, "", roots);
+		int min = Integer.MAX_VALUE;
+		String root = "";
+		for (Integer key : roots.keySet())
+		{
+			if (key.intValue() > 0 && key.intValue() < min)
+			{
+				root = roots.get(key);
+				min = key.intValue();
+			}
+		}
+		for (int i = root.length(); i < 2; i++)
+		{
+			root += "N";
+		}
+		kunoichi_commands[kunoichi.id] = root;
+	}
+	
 	private void computeInner(TurnState ts)
 	{
 		mappingDogs(ts.my_state);
-		int[][] soulsmap = findSoulDistanceTable(ts.my_state);
+		
+		int[][] souls_table = findSoulDistanceTable(ts.my_state);
+		
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			computeKunoichiRoot(souls_table, kunoichi);
+		}
 	}
 }
 
