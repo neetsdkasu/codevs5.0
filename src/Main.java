@@ -28,8 +28,10 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Main
@@ -143,13 +145,13 @@ class StateScanner
 		return new RowCol(gIs());
 	}
 	
-	RowCol[] scanRowCols() throws Exception
+	List<RowCol> scanRowCols() throws Exception
 	{
 		int count = gI();
-		RowCol[] rowcols = new RowCol[count];
+		List<RowCol> rowcols = new ArrayList<>();
 		for (int i = 0; i < count; i++)
 		{
-			rowcols[i] = scanRowCol();
+			rowcols.add(scanRowCol());
 		}
 		return rowcols;
 	}
@@ -335,7 +337,7 @@ class FieldState
 	public FieldObject[][] field;
 	public Unit[]          kunoichis;
 	public Unit[]          dogs;
-	public RowCol[]        souls;
+	public List<RowCol>    souls;
 	public int[]           ninjutsu_used_counts;
 	
 	public int getKunoichiCount() { return kunoichis.length; }
@@ -414,12 +416,12 @@ class AI
 		for (RowCol rc : fs.souls)
 		{
 			if (fs.field[rc.row][rc.col] != FieldObject.FLOOR) continue;
-			table[rc.row][rc.col] = 1;
+			table[rc.row][rc.col] = 3;
 			cur.addFirst(rc);
 		}
 		int[] add_rows = {1, 0, -1,  0};
 		int[] add_cols = {0, 1,  0, -1};
-		int distance = 1;
+		int distance = 3;
 		while (cur.isEmpty() == false)
 		{
 			distance++;
@@ -438,15 +440,67 @@ class AI
 			// swap cur next
 			temp = cur; cur = next; next = temp;
 		}
+		for (int i = 0; i < fs.field_size.row; i++)
+		{
+			for (int j = 0; j < fs.field_size.col; j++)
+			{
+				if (fs.field[i][j] == FieldObject.DOG || fs.field[i][j] == FieldObject.DANGEROUS_ZONE)
+				{
+					table[i][j] = 1;
+					continue;
+				}
+				if (fs.field[i][j] == FieldObject.ROCK)
+				{
+					if (i > 1 && i < fs.field_size.row - 2)
+					{
+						if (fs.field[i - 1][j] == FieldObject.FLOOR
+							&& fs.field[i - 2][j] == FieldObject.FLOOR
+							&& fs.field[i + 1][j] == FieldObject.FLOOR
+							&& fs.field[i + 2][j] == FieldObject.FLOOR)
+						{
+							table[i][j] = 2;
+							continue;
+						}
+					}
+					else if (j > 1 && j < fs.field_size.col - 2)
+					{
+						if (fs.field[i][j - 1] == FieldObject.FLOOR
+							&& fs.field[i][j - 2] == FieldObject.FLOOR
+							&& fs.field[i][j + 1] == FieldObject.FLOOR
+							&& fs.field[i][j + 2] == FieldObject.FLOOR)
+						{
+							table[i][j] = 2;
+							continue;
+						}
+					}
+				}
+				if (table[i][j] != 0 || fs.field[i][j] != FieldObject.FLOOR) continue;
+				int max = 0;
+				RowCol rc = new RowCol(i, j);
+				for (Unit kunoichi : fs.kunoichis)
+				{
+					max = Math.max(max, rc.distanceTo(kunoichi.pos));
+				}
+				table[i][j] = 1000 - max;
+			}
+		}
 		return table;
 	}
 	
 	private void mappingDogs(FieldState fs)
 	{
+		outerloop:
 		for (Unit dog : fs.dogs)
 		{
 			if (fs.field[dog.pos.row][dog.pos.col] != FieldObject.FLOOR) continue;
-			fs.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+			for (Unit kunoichi : fs.kunoichis)
+			{
+				if (kunoichi.pos.distanceTo(dog.pos) < 8)
+				{
+					fs.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+					continue outerloop;
+				}
+			}
 		}
 		for (int i = 1; i < fs.field_size.row - 1; i++)
 		{
@@ -475,23 +529,56 @@ class AI
 		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, -1), root + "L", roots);
 	}
 	
-	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi)
+	private List<RowCol> parseRoot(RowCol from, String root)
+	{
+		List<RowCol> list = new ArrayList<>();
+		looplabel:
+		for (int i = 0; i < root.length(); i++)
+		{
+			switch (root.charAt(i))
+			{
+				case 'D': from = from.move(1, 0); break;
+				case 'U': from = from.move(-1, 0); break;
+				case 'L': from = from.move(0, -1); break;
+				case 'R': from = from.move(0, 1); break;
+				default: continue looplabel;
+			}
+			list.add(from);
+		}
+		return list;
+	}
+	
+	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi, FieldState fs, int s)
 	{
 		Map<Integer, String> roots = new HashMap<>();
-		searchAllKunoichiRoot(souls_table, 2, 2, kunoichi.pos, "", roots);
+		searchAllKunoichiRoot(souls_table, s, s, kunoichi.pos, "", roots);
 		int min = Integer.MAX_VALUE;
 		String root = "";
 		for (Integer key : roots.keySet())
 		{
-			if (key.intValue() > 0 && key.intValue() < min)
+			if (key.intValue() >= 3 && key.intValue() < min)
 			{
 				root = roots.get(key);
 				min = key.intValue();
 			}
 		}
-		for (int i = root.length(); i < 2; i++)
+		for (int i = root.length(); i < s; i++)
 		{
 			root += "N";
+		}
+		List<RowCol> path = parseRoot(kunoichi.pos, root);
+		RowCol from = kunoichi.pos;
+		for (RowCol rc : path)
+		{
+			fs.souls.remove(rc);
+			if (fs.field[rc.row][rc.col] == FieldObject.ROCK)
+			{
+				RowCol df = from.subtractFrom(rc);
+				fs.field[rc.row][rc.col] = FieldObject.FLOOR;
+				from = rc;
+				df = rc.move(df.row, df.col);
+				fs.field[rc.row][rc.col] = FieldObject.ROCK;
+			}
 		}
 		kunoichi_commands[kunoichi.id] = root;
 	}
@@ -500,11 +587,10 @@ class AI
 	{
 		mappingDogs(ts.my_state);
 		
-		int[][] souls_table = findSoulDistanceTable(ts.my_state);
-		
 		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
-			computeKunoichiRoot(souls_table, kunoichi);
+			int[][] souls_table = findSoulDistanceTable(ts.my_state);
+			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
 	}
 }
