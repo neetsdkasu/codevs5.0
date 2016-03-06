@@ -351,15 +351,16 @@ class AI
 	public static final String NAME = "Leonardone_AI";
 
 	private TurnState old_state = null;
-	private String    ninjutsu_command;
-	private String[]  kunoichi_commands;
+	private final Ninjutsu  ninjutsu_command = new Ninjutsu(), old_ninjutsu_command = new Ninjutsu();
+	private String[]  kunoichi_commands, old_kunoitchi_commands;
 	
 	private void initCompute(TurnState ts)
 	{
-		ninjutsu_command = null;
+		ninjutsu_command.clear();
 		if (kunoichi_commands == null)
 		{
 			kunoichi_commands = new String[ts.my_state.kunoichis.length];
+			old_kunoitchi_commands = new String[kunoichi_commands.length];
 		}
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
@@ -369,12 +370,12 @@ class AI
 	
 	public boolean existsNinjutsu()
 	{
-		return ninjutsu_command != null;
+		return ninjutsu_command.exists();
 	}
 	
 	public String getNinjutsuCommand()
 	{
-		return ninjutsu_command;
+		return ninjutsu_command.toString();
 	}
 	
 	public String getKunoichiCommand(int id)
@@ -388,6 +389,11 @@ class AI
 		
 		computeInner(ts);
 		old_state = ts;
+		for (int i = 0; i < kunoichi_commands.length; i++)
+		{
+			old_kunoitchi_commands[i] = kunoichi_commands[i];
+		}
+		old_ninjutsu_command.copyFrom(ninjutsu_command);
 	}
 	
 	private int[][] findSoulDistanceTable(FieldState fs)
