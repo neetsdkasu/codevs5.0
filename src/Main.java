@@ -51,6 +51,8 @@ public class Main
 		{
 			String input = scanner.getTurnState();
 			
+			if (input == null) break;
+			
 			conn.setInput(input);
 			
 			String output = conn.getOutput();
@@ -62,6 +64,7 @@ public class Main
 		
 		conn.close();
 		thread.join();
+		System.err.println("finished Main");
 	}
 }
 
@@ -111,16 +114,38 @@ class ServerConnector implements Runnable, Closeable, AutoCloseable
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			PrintWriter           buf  = new PrintWriter(baos);
 			
+			int count = 0;
+			
 			while (running)
 			{
+				count++;
+				System.err.printf("%3d: --------------------- %s"
+					, count, System.lineSeparator());
+				
 				if (recvInput.get() == false) continue;
+				
+				System.err.println("sending input...");
 				
 				out.print(input);
 				out.flush();
 				
+				System.err.println("sent input.");
+				
+				System.err.println("waiting reciving output...");
+				
 				baos.reset();
 				
-				String line = in.readLine(); buf.println(line);
+				String line = in.readLine();
+				
+				if (line == null)
+				{
+					System.err.println("null poge");
+					throw new NullPointerException("null poge");
+				}
+				
+				System.err.println("recieving output...");
+				
+				buf.println(line);
 				
 				int n = Integer.parseInt(line);
 				for (int i = 0; i < n; i++)
@@ -129,12 +154,17 @@ class ServerConnector implements Runnable, Closeable, AutoCloseable
 				}
 				buf.flush();
 				
-				while (recvOutput.compareAndSet(false, true) == false)
+				System.err.println("recieved output.");
+				
+				while (recvOutput.get())
 					if (running == false) return;
 				
 				output = baos.toString();
 				
+				recvOutput.set(true);
 				recvInput.set(false);
+				
+				System.err.println("end of turn");
 			}
 			
 		}
@@ -165,6 +195,8 @@ class TurnScanner
 		String line;
 		int count;
 		
+		line = in.readLine(); out.println(line); // Ninja power
+		
 		line = in.readLine(); out.println(line); // Field Size
 		
 		String[] rowcol = line.split(" ");
@@ -190,8 +222,12 @@ class TurnScanner
 	{
 		baos.reset();
 		
-		for (int i = 0; i < 3; i++)
-			out.println(in.readLine()); // time, ninjutsu kinds, ninjutsu costs
+		for (int i = 0; i < 3; i++)  // time, ninjutsu kinds, ninjutsu costs
+		{
+			String line = in.readLine();
+			if (line == null) return null;
+			out.println(line);
+		}
 		
 		// my
 		scanFieldState();

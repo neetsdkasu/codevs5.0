@@ -41,8 +41,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.net.Socket;
 import java.net.ServerSocket;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 public class Player implements Runnable
@@ -70,9 +80,9 @@ public class Player implements Runnable
 
 class Server implements Runnable, Closeable, AutoCloseable
 {
-	public static final int          PORT   = 45459;
+	public static final int PORT   = 45459;
 
-	private ServerSocket             sevsoc = null;
+	private ServerSocket    sevsoc = null;
 	
 	public Server() throws Exception
 	{
@@ -164,18 +174,42 @@ class ClientConnector implements Runnable, Closeable, AutoCloseable
 			StateScanner scanner = new StateScanner(soc.getInputStream());
 			PrintWriter  writer  = new PrintWriter(soc.getOutputStream());
 			
+			int count = 0;
+			
 			while (running)
 			{
+				count++;
+				System.err.printf("%3d: --------------------- %s"
+					, count, System.lineSeparator());
+				
+				System.err.println("recieving input...");
+				
 				TurnState ts = scanner.scanTurnState();
+				
+				System.err.println("recieved input.");
+				
+				if (ts == null)
+				{
+					System.err.println("null poge.");
+					break;
+				}
 				
 				PlayerUI.getInstance(null).setInput(this, ts);
 				
+				System.err.println("waiting decide output...");
+				
 				while (recvOutput.get() == false) if (running == false) return;
+				
+				System.err.println("sending output...");
 				
 				writer.print(output);
 				writer.flush();
 				
+				System.err.println("sent output.");
+				
 				recvOutput.set(false);
+				
+				System.err.println("end of turn");
 			}
 		}
 		catch (Exception ex)
@@ -277,7 +311,9 @@ class StateScanner
 	{
 		TurnState ts = new TurnState();
 		
-		ts.remain_time          = gL();
+		String line = gS(); if (line == null) return null;
+		
+		ts.remain_time          = toL(line);
 		ts.ninjutsu_kinds_count = gI();
 		ts.ninjutsu_costs       = gIs();
 		
@@ -453,6 +489,93 @@ class TurnState
 	}
 }
 
+class GamePanel extends JPanel
+{
+	private BufferedImage backgroundImage;
+	
+	public GamePanel()
+	{
+		super();
+		setSize(640,480);
+		backgroundImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+	}
+	
+	public void paintComponent(Graphics g)
+	{
+		g.drawImage(backgroundImage, 0, 0, this);
+	}
+	
+	private void drawField(Graphics2D g, FieldState fs, int offX, int offY)
+	{
+		
+		g.setColor(Color.BLACK);
+		
+		g.drawString(Integer.toString(fs.ninja_enegy), offX, offY - 20);
+		
+		for (int i = 0; i < fs.field_size.row; i++)
+		{
+			for (int j = 0; j < fs.field_size.col; j++)
+			{
+				switch (fs.field[i][j])
+				{
+					case WALL:
+						g.drawString("W", j * 20 + offX, i * 20 + offY);
+						break;
+					case ROCK:
+						g.drawString("O", j * 20 + offX, i * 20 + offY);
+						break;
+				}
+			}
+		}
+		g.setColor(Color.BLUE);
+		for (RowCol pos : fs.souls)
+		{
+			g.drawString("S", pos.col * 20 + offX, pos.row * 20 + offY);
+		}
+		g.setColor(Color.RED);
+		for (Unit dog : fs.dogs)
+		{
+			g.drawString("d", dog.pos.col * 20 + offX, dog.pos.row * 20 + offY);
+		}
+		g.setColor(Color.MAGENTA);
+		for (Unit kunoichi : fs.kunoichis)
+		{
+			g.drawString("@", kunoichi.pos.col * 20 + offX, kunoichi.pos.row * 20 + offY);
+		}
+		
+	}
+	
+	public void drawTurnState(TurnState ts)
+	{
+		SwingUtilities.invokeLater( () -> {
+			Graphics2D g = backgroundImage.createGraphics();
+			
+			g.setColor(getBackground());
+			g.fillRect(0, 0, getWidth(), getHeight());
+			
+			g.setFont(g.getFont().deriveFont(Font.BOLD));
+			drawField(g, ts.my_state, 20, 50);
+			drawField(g, ts.rival_state, 335, 50);
+			
+			int p = getWidth() / 30;
+			int h = 20 * ts.my_state.field_size.row + 55;
+			
+			g.setColor(Color.BLUE);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[0]), p * (2 +  0), h);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[1]), p * (1 +  5), h);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[3]), p * (1 + 10), h);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[5]), p * (1 + 15), h);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[7]), p * (2 + 20), h);
+			g.setColor(Color.RED);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[2]), p * (3 +  5), h);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[4]), p * (3 + 10), h);
+			g.drawString(Integer.toString(ts.ninjutsu_costs[6]), p * (3 + 15), h);
+			
+			repaint();
+		});
+	}
+}
+
 class PlayerUI extends JFrame
 {
 	private static volatile PlayerUI instance = null;
@@ -466,19 +589,44 @@ class PlayerUI extends JFrame
 	}
 	
 	private final Server server;
+	private GamePanel game_panel;
+	private volatile ClientConnector conn = null;
+	private volatile TurnState ts = null;
 	
 	private PlayerUI(Server server)
 	{
 		super("ManualPlay UI");
-		if (server == null) throw new NullPointerException("argument server must be not null");
 		this.server = server;
 	}
 	
 	protected void frameInit()
 	{
 		super.frameInit();
-		setSize(640, 480);
+		
+		setSize(640, 460);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		
+		getContentPane().setLayout(new BorderLayout());
+		
+		add(game_panel = new GamePanel(), BorderLayout.CENTER);
+		
+		JPanel jPanel = new JPanel(); 
+		
+		jPanel.setLayout(new GridLayout(1, 6));
+		
+		JButton btn;
+		jPanel.add(new JButton("Speed Up"));
+		jPanel.add(new JButton("Drop Rock"));
+		jPanel.add(new JButton("Thunder"));
+		jPanel.add(new JButton("Dummy"));
+		jPanel.add(new JButton("Turn Cut"));
+		jPanel.add(btn = new JButton("OK"));
+		btn.addActionListener( e -> {
+			conn.setOutput("2" + System.lineSeparator() + System.lineSeparator() + System.lineSeparator());
+		});
+		add(jPanel, BorderLayout.SOUTH);
+		
+		
 	}
 	
 	protected void processWindowEvent(WindowEvent e)
@@ -488,7 +636,7 @@ class PlayerUI extends JFrame
 			switch (e.getID())
 			{
 			case WindowEvent.WINDOW_CLOSING:
-				server.close();
+				if (server != null) server.close();
 				break;
 			}
 		}
@@ -504,5 +652,9 @@ class PlayerUI extends JFrame
 	
 	public void setInput(ClientConnector conn, TurnState ts)
 	{
+		this.conn = conn;
+		this.ts = ts;
+		game_panel.drawTurnState(ts);
+		
 	}
 }
