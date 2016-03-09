@@ -5,7 +5,7 @@ CODE VS5.0 で プリセットAI等とのローカル対戦をAIじゃなくマ�
 
 ※ CODE VS5.0 の詳細は → https://codevs.jp/
 
-[https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay1.png]  
+![image1](https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay1.png)  
 
 
 
@@ -90,4 +90,4 @@ CODE VS5.0 のクライアントのほうには
 全ての入力が終わったら OK ボタンを押す  
 
 	
-https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay2.png  
+![image2](https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay2.png)  
