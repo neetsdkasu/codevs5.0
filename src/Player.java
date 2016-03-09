@@ -48,12 +48,14 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.MouseInputAdapter;
 
 public class Player implements Runnable
 {
@@ -452,6 +454,7 @@ class Unit
 		id = values[0];
 		pos = new RowCol(values, 1);
 	}
+	public Unit(int id, RowCol pos) { this.id = id; this.pos = pos; }
 	public int hashCode() { return id; }
 	public boolean equals(Object o)
 	{
@@ -532,18 +535,73 @@ class GamePanel extends JPanel
 		{
 			g.drawString("S", pos.col * 20 + offX, pos.row * 20 + offY);
 		}
-		g.setColor(Color.RED);
+		g.setColor(Color.DARK_GRAY);
 		for (Unit dog : fs.dogs)
 		{
 			g.drawString("d", dog.pos.col * 20 + offX, dog.pos.row * 20 + offY);
 		}
-		g.setColor(Color.MAGENTA);
 		for (Unit kunoichi : fs.kunoichis)
 		{
+			g.setColor(kunoichi.id % 2 == 0 ? Color.RED : Color.MAGENTA);
 			g.drawString("@", kunoichi.pos.col * 20 + offX, kunoichi.pos.row * 20 + offY);
 		}
 		
 	}
+	
+	public void drawNinjutsuName(String ninjutsu_name)
+	{
+		SwingUtilities.invokeLater( () -> {
+			Graphics2D g = backgroundImage.createGraphics();
+			
+			g.setColor(getBackground());
+			g.fillRect(60, 10, 140, 23);
+			
+			g.setColor(Color.BLUE);
+			g.drawString(ninjutsu_name, 60, 30); // y is text-base-line
+				
+			repaint();
+		});
+	}
+	
+	public void drawNinjutsuPosition(RowCol pos, boolean rival)
+	{
+		SwingUtilities.invokeLater( () -> {
+			Graphics2D g = backgroundImage.createGraphics();
+			
+			g.setColor(rival ? Color.RED : Color.BLUE);
+			g.drawString(pos.toString(), 140, 30); // y is text-base-line
+				
+			repaint();
+		});
+	}
+	
+	public void drawTurnCutKunoichiID(int id)
+	{
+		SwingUtilities.invokeLater( () -> {
+			Graphics2D g = backgroundImage.createGraphics();
+			
+			g.setColor(id % 2 == 0 ? Color.RED : Color.MAGENTA);
+			g.drawString(Integer.toString(id), 140, 30); // y is text-base-line
+				
+			repaint();
+		});
+	}
+	
+	public void drawKunoichiRoot(Unit kunoichi, String root)
+	{
+		SwingUtilities.invokeLater( () -> {
+			Graphics2D g = backgroundImage.createGraphics();
+			
+			g.setColor(getBackground());
+			g.fillRect(200 + kunoichi.id * 60, 10, 60, 23);
+			
+			g.setColor(kunoichi.id % 2 == 0 ? Color.RED : Color.MAGENTA);
+			g.drawString(root, 200 + kunoichi.id * 60, 30); // y is text-base-line
+			
+			g.drawString("@", kunoichi.pos.col * 20 + 20, kunoichi.pos.row * 20 + 50);
+			
+			repaint();
+		});	}
 	
 	public void drawTurnState(TurnState ts)
 	{
@@ -576,6 +634,11 @@ class GamePanel extends JPanel
 	}
 }
 
+enum InputTerm
+{
+	NONE, MOVE, NINJUTSU
+}
+
 class PlayerUI extends JFrame
 {
 	private static volatile PlayerUI instance = null;
@@ -592,6 +655,10 @@ class PlayerUI extends JFrame
 	private GamePanel game_panel;
 	private volatile ClientConnector conn = null;
 	private volatile TurnState ts = null;
+	private final Ninjutsu ninjutsu_command = new Ninjutsu();
+	private volatile InputTerm input_term = InputTerm.NONE;
+	private volatile Unit kunoichi_moving;
+	private volatile String[] kunoichi_roots;
 	
 	private PlayerUI(Server server)
 	{
@@ -615,18 +682,171 @@ class PlayerUI extends JFrame
 		jPanel.setLayout(new GridLayout(1, 6));
 		
 		JButton btn;
-		jPanel.add(new JButton("Speed Up"));
-		jPanel.add(new JButton("Drop Rock"));
-		jPanel.add(new JButton("Thunder"));
-		jPanel.add(new JButton("Dummy"));
-		jPanel.add(new JButton("Turn Cut"));
+		
+		jPanel.add(btn = new JButton("Speed Up"));
+		btn.addActionListener( e -> {
+			if (ts == null) return;
+			if (input_term != InputTerm.NONE) return;
+			if (ninjutsu_command.type != null) return;
+			game_panel.drawNinjutsuName("Speed Up");
+			ninjutsu_command.type = NinjutsuType.SPEED_UP;
+		});
+		jPanel.add(btn = new JButton("Drop Rock"));
+		btn.addActionListener( e -> {
+			if (ts == null) return;
+			if (input_term != InputTerm.NONE) return;
+			if (ninjutsu_command.type != null) return;
+			game_panel.drawNinjutsuName("Drop Rock");
+			ninjutsu_command.type = NinjutsuType.DROP_ROCK_MY_FIELD;
+			input_term = InputTerm.NINJUTSU;
+		});
+		jPanel.add(btn = new JButton("Thunder"));
+		btn.addActionListener( e -> {
+			if (ts == null) return;
+			if (input_term != InputTerm.NONE) return;
+			if (ninjutsu_command.type != null) return;
+			game_panel.drawNinjutsuName("Thunder");
+			ninjutsu_command.type = NinjutsuType.THUNDERSTROKE_MY_FIELD;
+			input_term = InputTerm.NINJUTSU;
+		});
+		jPanel.add(btn = new JButton("Dummy"));
+		btn.addActionListener( e -> {
+			if (ts == null) return;
+			if (input_term != InputTerm.NONE) return;
+			if (ninjutsu_command.type != null) return;
+			game_panel.drawNinjutsuName("Dummy");
+			ninjutsu_command.type = NinjutsuType.MAKE_MY_DUMMY;
+			input_term = InputTerm.NINJUTSU;
+		});
+		jPanel.add(btn = new JButton("Turn Cut"));
+		btn.addActionListener( e -> {
+			if (ts == null) return;
+			if (input_term != InputTerm.NONE) return;
+			if (ninjutsu_command.type != null) return;
+			game_panel.drawNinjutsuName("Turn Cut");
+			ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
+			input_term = InputTerm.NINJUTSU;
+		});
 		jPanel.add(btn = new JButton("OK"));
 		btn.addActionListener( e -> {
-			conn.setOutput("2" + System.lineSeparator() + System.lineSeparator() + System.lineSeparator());
+			if (conn == null) return;
+			String cmd;
+			if (ninjutsu_command.exists())
+			{
+				cmd = "3" + System.lineSeparator() + ninjutsu_command.toString() + System.lineSeparator();
+			}
+			else
+			{
+				cmd = "2" + System.lineSeparator();
+			}
+			for (String root : kunoichi_roots)
+			{
+				cmd += root + System.lineSeparator();
+			}
+			conn.setOutput(cmd);
 		});
+	
 		add(jPanel, BorderLayout.SOUTH);
 		
-		
+		game_panel.addMouseListener(new MouseInputAdapter() {
+			public void mouseClicked(MouseEvent e)
+			{
+				if (e.getButton() != MouseEvent.BUTTON1) return;
+				if (ts == null) return;
+				int x = e.getX(), y = e.getY() - 30;
+				if (y < 0) return;
+				if (x >= 335)
+				{
+					x -= 335;
+					if (input_term != InputTerm.NINJUTSU) return;
+					input_term = InputTerm.NONE;
+					ninjutsu_command.type = NinjutsuType.valueOf(ninjutsu_command.type.ordinal() + 1);
+					ninjutsu_command.pos = new RowCol(y / 20, x / 20);
+					game_panel.drawNinjutsuPosition(ninjutsu_command.pos, true);
+				}
+				else if (x >= 20)
+				{
+					x -= 20;
+					RowCol pos = new RowCol(y / 20, x / 20);
+					RowCol df = pos.subtractFrom(ts.my_state.field_size);
+					if (df.row <= 0 || df.col <= 0) return;
+					switch (input_term)
+					{
+					case NONE: // MOVE - select kunoichi
+						System.err.println("NONE ===");
+						System.err.println(pos);
+						for (Unit kunoichi : ts.my_state.kunoichis)
+						{
+							System.err.println(kunoichi.pos);
+							if (pos.equals(kunoichi.pos))
+							{
+								if (kunoichi_roots[kunoichi.id].length() > 0) break;
+								input_term = InputTerm.MOVE;
+								kunoichi_moving = kunoichi;
+								game_panel.drawKunoichiRoot(kunoichi_moving, "@@");
+								break;
+							}
+						}
+						System.err.println("END === ");
+						break;
+					case MOVE:
+						if (kunoichi_moving.pos.distanceTo(pos) > 1) return;
+						df = kunoichi_moving.pos.subtractFrom(pos);
+						String c = "N";
+						if (df.row < 0)
+						{
+							c = "U";
+						}
+						else if (df.row > 0)
+						{
+							c = "D";
+						}
+						else if (df.col < 0)
+						{
+							c = "L";
+						}
+						else if (df.col > 0)
+						{
+							c = "R";
+						}
+						kunoichi_roots[kunoichi_moving.id] += c;
+						kunoichi_moving = new Unit(kunoichi_moving.id, pos);
+						game_panel.drawKunoichiRoot(kunoichi_moving, kunoichi_roots[kunoichi_moving.id]);
+						int len = kunoichi_roots[kunoichi_moving.id].length();
+						if ((len < 2 || (ninjutsu_command.type == NinjutsuType.SPEED_UP && len < 3)) == false)
+						{
+							input_term = InputTerm.NONE;
+						}
+						break;
+					case NINJUTSU:
+						switch (ninjutsu_command.type) // non null check! danger!
+						{
+						case SPEED_UP:
+							break;
+						case TURN_CUTTING:
+							for (Unit kunoichi : ts.my_state.kunoichis)
+							{
+								if (pos.equals(kunoichi.pos))
+								{
+									input_term = InputTerm.NONE;
+									ninjutsu_command.kunoichi_id = kunoichi.id;
+									game_panel.drawTurnCutKunoichiID(kunoichi.id);
+									break;
+								}
+							}
+							break;
+						default:
+							input_term = InputTerm.NONE;
+							ninjutsu_command.pos = pos;
+							game_panel.drawNinjutsuPosition(pos, false);
+							break;
+						}
+						break;
+					}
+				}
+				
+			}
+		});
 	}
 	
 	protected void processWindowEvent(WindowEvent e)
@@ -654,6 +874,14 @@ class PlayerUI extends JFrame
 	{
 		this.conn = conn;
 		this.ts = ts;
+		ninjutsu_command.clear();
+		input_term = InputTerm.NONE;
+		if (kunoichi_roots == null)
+		{
+			kunoichi_roots = new String[ts.my_state.kunoichis.length];
+		}
+		for (int i = 0; i < kunoichi_roots.length; i++)
+			kunoichi_roots[i] = "";
 		game_panel.drawTurnState(ts);
 		
 	}

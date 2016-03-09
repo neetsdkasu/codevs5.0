@@ -164,7 +164,7 @@ class ServerConnector implements Runnable, Closeable, AutoCloseable
 				recvOutput.set(true);
 				recvInput.set(false);
 				
-				System.err.println("end of turn");
+				System.err.println("end of turn.");
 			}
 			
 		}
