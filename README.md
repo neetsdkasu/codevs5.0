@@ -1,5 +1,8 @@
-CodeVS 5.0 My AI (CopyNinja)
+CODE VS 5.0 My AI (CopyNinja)
 ============================
+
+※ CODE VS5.0 の詳細は → https://codevs.jp/
+
 
 Java8で実装  
 
