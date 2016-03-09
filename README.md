@@ -1,93 +1,93 @@
 CodeVS 5.0 Manual Play
 ======================
 
-CODE VS5.0 ‚Å ƒvƒŠƒZƒbƒgAI“™‚Æ‚Ìƒ[ƒJƒ‹‘Îí‚ðAI‚¶‚á‚È‚­ƒ}ƒjƒ…ƒAƒ‹‚Å‘Îí‚·‚é  
+CODE VS5.0 ã§ ãƒ—ãƒªã‚»ãƒƒãƒˆAIç­‰ã¨ã®ãƒ­ãƒ¼ã‚«ãƒ«å¯¾æˆ¦ã‚’AIã˜ã‚ƒãªããƒžãƒ‹ãƒ¥ã‚¢ãƒ«ã§å¯¾æˆ¦ã™ã‚‹  
 
-¦ CODE VS5.0 ‚ÌÚ×‚Í ¨ https://codevs.jp/
+â€» CODE VS5.0 ã®è©³ç´°ã¯ â†’ https://codevs.jp/
 
-[[https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay1.png]]  
-
-
-
-ƒ\[ƒX‚Ì Main.java ‚Æ Player.java ‚ðƒRƒ“ƒpƒCƒ‹‚·‚é‚Æ‚½‚­‚³‚ñƒNƒ‰ƒX‚ª¶¬‚³‚ê‚é  
-
-`Main.class` ... CODE VS 5.0 ‚ÌƒNƒ‰ƒCƒAƒ“ƒg‚ÅŽÀs‚³‚¹‚é‚Ù‚¤‚ÌƒNƒ‰ƒX  
-`Player.class` ... ƒ}ƒjƒ…ƒAƒ‹‘€ì‚·‚é‚½‚ß‚ÌUIA‘Îí‚ðŽn‚ß‚é‘O‚ÉPlayer.class‚ð’P“Æ‹N“®‚³‚¹‚é•K—v‚ª‚ ‚é  
+[https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay1.png]  
 
 
 
+ã‚½ãƒ¼ã‚¹ã® Main.java ã¨ Player.java ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã™ã‚‹ã¨ãŸãã•ã‚“ã‚¯ãƒ©ã‚¹ãŒç”Ÿæˆã•ã‚Œã‚‹  
 
-ƒRƒ“ƒpƒCƒ‹‚ÆŽÀs
+`Main.class` ... CODE VS 5.0 ã®ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã§å®Ÿè¡Œã•ã›ã‚‹ã»ã†ã®ã‚¯ãƒ©ã‚¹  
+`Player.class` ... ãƒžãƒ‹ãƒ¥ã‚¢ãƒ«æ“ä½œã™ã‚‹ãŸã‚ã®UIã€å¯¾æˆ¦ã‚’å§‹ã‚ã‚‹å‰ã«Player.classã‚’å˜ç‹¬èµ·å‹•ã•ã›ã‚‹å¿…è¦ãŒã‚ã‚‹  
+
+
+
+
+ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã¨å®Ÿè¡Œ
 ----------------
-Java8 ‚ª•K—v‚Å‚ ‚é  
+Java8 ãŒå¿…è¦ã§ã‚ã‚‹  
 
-Main.java‚ÆPlayer.java‚ð C:\CodeVS5\ ‚É”z’u‚µ‚½‚Æ‚·‚é‚Æ  
+Main.javaã¨Player.javaã‚’ C:\CodeVS5\ ã«é…ç½®ã—ãŸã¨ã™ã‚‹ã¨  
 
-ƒRƒ“ƒpƒCƒ‹‚Í  
+ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã¯  
 
 	cd C:\CodeVS5
 	if not exist classes mkdir classes
 	javac -d ".\classes" Main.java Player.java
 
 
-class‚Ì‚Ü‚ÜŽÀs‚³‚¹‚éê‡‚Í  
+classã®ã¾ã¾å®Ÿè¡Œã•ã›ã‚‹å ´åˆã¯  
 
-‚Ü‚¸UI‹N“® (¦ƒNƒ‰ƒCƒAƒ“ƒg‚Å‘ÎíŽn‚ß‚é‘O‚É‹N“®‚·‚é‚É‚å)  
+ã¾ãšUIèµ·å‹• (â€»ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã§å¯¾æˆ¦å§‹ã‚ã‚‹å‰ã«èµ·å‹•ã™ã‚‹ã«ã‚‡)  
 
 	cd C:\CodeVS5
 	java -cp classes Player
 
-CODE VS 5.0 ƒNƒ‰ƒCƒAƒ“ƒg‚Ì‚Ù‚¤‚É‚Í 
+CODE VS 5.0 ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã»ã†ã«ã¯ 
 
 	java -cp "C:\CodeVS5\classes" Main
 
-‚Æ‘‚¯‚Î‚¨‚‹  
+ã¨æ›¸ã‘ã°ãŠï½‹  
 
 
-JAR‚ÉƒpƒbƒN‚·‚éê‡‚Í  
+JARã«ãƒ‘ãƒƒã‚¯ã™ã‚‹å ´åˆã¯  
 
 	cd C:\CodeVS5
 	jar cvf ManualPlay.jar -C classes .
 
-’FjarƒRƒ}ƒ“ƒh‚Ìs––‚Éƒhƒbƒg‘‚­‚Ì‚Å–Y‚ê‚¸‚É  
+æ³¨ï¼šjarã‚³ãƒžãƒ³ãƒ‰ã®è¡Œæœ«ã«ãƒ‰ãƒƒãƒˆæ›¸ãã®ã§å¿˜ã‚Œãšã«  
 
-JAR‚©‚ç‚ÌUI‹N“®‚Í (¦ƒNƒ‰ƒCƒAƒ“ƒg‚Å‘ÎíŽn‚ß‚é‘O‚É‹N“®‚·‚é‚É‚å)  
+JARã‹ã‚‰ã®UIèµ·å‹•ã¯ (â€»ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã§å¯¾æˆ¦å§‹ã‚ã‚‹å‰ã«èµ·å‹•ã™ã‚‹ã«ã‚‡)  
 
 	cd C:\CodeVS5
 	java -cp ManualPlay.jar Player
 
-CODE VS5.0 ‚ÌƒNƒ‰ƒCƒAƒ“ƒg‚Ì‚Ù‚¤‚É‚Í  
+CODE VS5.0 ã®ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã®ã»ã†ã«ã¯  
 
 	java -cp "C:\CodeVS5\ManualPlay.jar" Main
 
-‚Æ‘‚¯‚Î‚¨‚‹  
+ã¨æ›¸ã‘ã°ãŠï½‹  
 
 
 
 
-‘€ì•û–@
+æ“ä½œæ–¹æ³•
 --------
 
-`W` ‚ª•Ç‚ð•\‚·  
-`O` ‚ªÎ‚ð•\‚·  
-`S` ‚ªƒjƒ“ƒWƒƒƒ\ƒEƒ‹‚ð•\‚·  
-`d` ‚ªŒ¢‚ð•\‚·  
-`@` ‚ª”EŽÒ‚ð•\‚·(Ô‚ªID-0Aƒ}ƒ[ƒ“ƒ^‚ªID-1) 
+`W` ãŒå£ã‚’è¡¨ã™  
+`O` ãŒçŸ³ã‚’è¡¨ã™  
+`S` ãŒãƒ‹ãƒ³ã‚¸ãƒ£ã‚½ã‚¦ãƒ«ã‚’è¡¨ã™  
+`d` ãŒçŠ¬ã‚’è¡¨ã™  
+`@` ãŒå¿è€…ã‚’è¡¨ã™(èµ¤ãŒID-0ã€ãƒžã‚¼ãƒ³ã‚¿ãŒID-1) 
 
- * ”EŽÒ‚ÌˆÚ“®  
-”EŽÒ‚ðƒNƒŠƒbƒN‚·‚é‚ÆƒNƒŠƒbƒN‚µ‚½”EŽÒ‚ÌˆÚ“®ƒ‚[ƒh‚É‚È‚Á‚Ä  
-”EŽÒ‚ÌˆÚ“®‚ð1•à‚¸‚ÂˆÚ“®æ‚ðƒNƒŠƒbƒN‚·‚é  
-2•à•ª(’´‘¬Žž‚Í3•à•ª)ƒNƒŠƒbƒN‚·‚é‚Ü‚ÅˆÚ“®ƒ‚[ƒhó‘Ô‚Ì‚Ü‚Ü‚Å‚ ‚é  
-®AˆÚ“®“™‚ÌƒLƒƒƒ“ƒZƒ‹(‚â‚è‚È‚¨‚µ)‚Í‚Å‚«‚È‚¢   
+ * å¿è€…ã®ç§»å‹•  
+å¿è€…ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ã‚¯ãƒªãƒƒã‚¯ã—ãŸå¿è€…ã®ç§»å‹•ãƒ¢ãƒ¼ãƒ‰ã«ãªã£ã¦  
+å¿è€…ã®ç§»å‹•ã‚’1æ­©ãšã¤ç§»å‹•å…ˆã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹  
+2æ­©åˆ†(è¶…é€Ÿæ™‚ã¯3æ­©åˆ†)ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¾ã§ç§»å‹•ãƒ¢ãƒ¼ãƒ‰çŠ¶æ…‹ã®ã¾ã¾ã§ã‚ã‚‹  
+å°šã€ç§»å‹•ç­‰ã®ã‚­ãƒ£ãƒ³ã‚»ãƒ«(ã‚„ã‚ŠãªãŠã—)ã¯ã§ããªã„   
 
- * ”Ep  
-	+ ’´‘¬ ... ”EŽÒ‚ÌˆÚ“®‘O‚ÉSpeed Up‚Ìƒ{ƒ^ƒ“‚ð‰Ÿ‚·  
-	+ —ŽÎ ... Drop Rockƒ{ƒ^ƒ“‚ð‰Ÿ‚µ‚½Œã‚É—Ž‚Æ‚·êŠ‚ðƒNƒŠƒbƒN‚·‚é  
-	+ —‹Œ‚ ... Thunderƒ{ƒ^ƒ“‚ð‰Ÿ‚µ‚½Œã‚É—Ž‚Æ‚·êŠ‚ðƒNƒŠƒbƒN‚·‚é  
-	+ •ªg ... Dummyƒ{ƒ^ƒ“‚ð‰Ÿ‚µ‚½Œã‚ÉoŒ»‚³‚¹‚½‚¢êŠ‚ðƒNƒŠƒbƒN‚·‚é  
-	+ ‰ñŽa ... Turn Cutƒ{ƒ^ƒ“‚ð‰Ÿ‚µ‚½Œã‚É‰ñŽa‚ð‚·‚é”EŽÒ‚ðƒNƒŠƒbƒN‚·‚é  
+ * å¿è¡“  
+	+ è¶…é€Ÿ ... å¿è€…ã®ç§»å‹•å‰ã«Speed Upã®ãƒœã‚¿ãƒ³ã‚’æŠ¼ã™  
+	+ è½çŸ³ ... Drop Rockãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãŸå¾Œã«è½ã¨ã™å ´æ‰€ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹  
+	+ é›·æ’ƒ ... Thunderãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãŸå¾Œã«è½ã¨ã™å ´æ‰€ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹  
+	+ åˆ†èº« ... Dummyãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãŸå¾Œã«å‡ºç¾ã•ã›ãŸã„å ´æ‰€ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹  
+	+ å›žæ–¬ ... Turn Cutãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãŸå¾Œã«å›žæ–¬ã‚’ã™ã‚‹å¿è€…ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹  
 
-‘S‚Ä‚Ì“ü—Í‚ªI‚í‚Á‚½‚ç OK ƒ{ƒ^ƒ“‚ð‰Ÿ‚·  
+å…¨ã¦ã®å…¥åŠ›ãŒçµ‚ã‚ã£ãŸã‚‰ OK ãƒœã‚¿ãƒ³ã‚’æŠ¼ã™  
 
 	
-[[https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay2.png]]  
+https://github.com/neetsdkasu/codevs5.0/wiki/codevs5manualplay2.png  
