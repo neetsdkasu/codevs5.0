@@ -35,6 +35,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -535,7 +537,7 @@ class GamePanel extends JPanel
 		{
 			g.drawString("S", pos.col * 20 + offX, pos.row * 20 + offY);
 		}
-		g.setColor(Color.DARK_GRAY);
+		g.setColor(Color.RED);
 		for (Unit dog : fs.dogs)
 		{
 			g.drawString("d", dog.pos.col * 20 + offX, dog.pos.row * 20 + offY);
@@ -582,6 +584,21 @@ class GamePanel extends JPanel
 			
 			g.setColor(id % 2 == 0 ? Color.RED : Color.MAGENTA);
 			g.drawString(Integer.toString(id), 140, 30); // y is text-base-line
+				
+			repaint();
+		});
+	}
+	
+	public void drawTimer(long tm)
+	{
+		SwingUtilities.invokeLater( () -> {
+			Graphics2D g = backgroundImage.createGraphics();
+			
+			g.setColor(getBackground());
+			g.fillRect(500, 10, 100, 23);
+			
+			g.setColor(Color.BLACK);
+			g.drawString(Long.toString(tm), 500, 30); // y is text-base-line
 				
 			repaint();
 		});
@@ -659,6 +676,8 @@ class PlayerUI extends JFrame
 	private volatile InputTerm input_term = InputTerm.NONE;
 	private volatile Unit kunoichi_moving;
 	private volatile String[] kunoichi_roots;
+	private volatile long recvTime = 0;
+	private Timer timer;
 	
 	private PlayerUI(Server server)
 	{
@@ -676,6 +695,19 @@ class PlayerUI extends JFrame
 		getContentPane().setLayout(new BorderLayout());
 		
 		add(game_panel = new GamePanel(), BorderLayout.CENTER);
+		
+		timer = new Timer();
+		timer.schedule( new TimerTask() {
+			public void run()
+			{
+				long t = System.currentTimeMillis();
+				long df = t - recvTime;
+				if (df < 0L || df > 20000L) df = -1L;
+				else df = 20000L - df;
+				game_panel.drawTimer(df / 1000L);
+			}
+		}, 2000, 200);
+		
 		
 		JPanel jPanel = new JPanel(); 
 		
@@ -783,7 +815,8 @@ class PlayerUI extends JFrame
 								if (kunoichi_roots[kunoichi.id].length() > 0) break;
 								input_term = InputTerm.MOVE;
 								kunoichi_moving = kunoichi;
-								game_panel.drawKunoichiRoot(kunoichi_moving, "@@");
+								game_panel.drawKunoichiRoot(kunoichi_moving, 
+									ninjutsu_command.type == NinjutsuType.SPEED_UP ? "@@@" : "@@");
 								break;
 							}
 						}
@@ -856,6 +889,7 @@ class PlayerUI extends JFrame
 			switch (e.getID())
 			{
 			case WindowEvent.WINDOW_CLOSING:
+				timer.cancel();
 				if (server != null) server.close();
 				break;
 			}
@@ -876,6 +910,7 @@ class PlayerUI extends JFrame
 		this.ts = ts;
 		ninjutsu_command.clear();
 		input_term = InputTerm.NONE;
+		recvTime = System.currentTimeMillis();
 		if (kunoichi_roots == null)
 		{
 			kunoichi_roots = new String[ts.my_state.kunoichis.length];
