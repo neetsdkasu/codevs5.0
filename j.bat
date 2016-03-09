@@ -1,6 +1,7 @@
 @if exist ManualPlay.jar goto update_label
 
 jar cvf ManualPlay.jar -C classes .
+jar uvf ManualPlay.jar LICENSE README.md
 
 @exit /b
 
