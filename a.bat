@@ -1,1 +1,3 @@
-java -cp "%~dp0\classes" Main 
+@pushd "%~dp0"
+java -cp classes Main 0< sample.txt
+@popd
