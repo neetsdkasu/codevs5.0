@@ -1,2 +1,4 @@
-@if not exist "%~dp0\classes" mkdir "%~dp0\classes"
-javac -sourcepath "%~dp0\src" -d "%~dp0\classes"  "%~dp0\src\Main.java"
+@pushd "%~dp0"
+@if not exist classes mkdir classes
+javac -sourcepath src -d classes .\src\Main.java
+@popd
