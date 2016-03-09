@@ -50,6 +50,11 @@ public class Main
 		{
 			TurnState ts = scanner.scanTurnState();
 			
+			if (ts == null)
+			{
+				break;
+			}
+			
 			// check game over
 			if (ts.isGameOver())
 			{
@@ -175,7 +180,11 @@ class StateScanner
 	{
 		TurnState ts = new TurnState();
 		
-		ts.remain_time          = gL();
+		String line = gS();
+		
+		if (line == null) return null;
+		
+		ts.remain_time          = toL(line);
 		ts.ninjutsu_kinds_count = gI();
 		ts.ninjutsu_costs       = gIs();
 		
