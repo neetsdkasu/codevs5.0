@@ -565,14 +565,25 @@ class GamePanel extends JPanel
 		});
 	}
 	
-	public void drawNinjutsuPosition(RowCol pos, boolean rival)
+	public void drawNinjutsuPosition(RowCol pos, boolean rival, String ch)
 	{
 		SwingUtilities.invokeLater( () -> {
 			Graphics2D g = backgroundImage.createGraphics();
 			
 			g.setColor(rival ? Color.RED : Color.BLUE);
 			g.drawString(pos.toString(), 140, 30); // y is text-base-line
-				
+			
+			g.setFont(g.getFont().deriveFont(Font.BOLD));
+			g.setColor(Color.DARK_GRAY);
+			if (rival)
+			{
+				g.drawString(ch, pos.col * 20 + 335, pos.row * 20 + 50);
+			}
+			else
+			{
+				g.drawString(ch, pos.col * 20 + 20, pos.row * 20 + 50);
+			}
+			
 			repaint();
 		});
 	}
@@ -794,7 +805,14 @@ class PlayerUI extends JFrame
 					input_term = InputTerm.NONE;
 					ninjutsu_command.type = NinjutsuType.valueOf(ninjutsu_command.type.ordinal() + 1);
 					ninjutsu_command.pos = new RowCol(y / 20, x / 20);
-					game_panel.drawNinjutsuPosition(ninjutsu_command.pos, true);
+					String ch = "";
+					switch (ninjutsu_command.type)
+					{
+					case DROP_ROCK_RIVAL_FIELD: ch = "O"; break;
+					case THUNDERSTROKE_RIVAL_FIELD: ch = "X"; break;
+					case MAKE_RIVAL_DUMMY: ch = "@"; break;
+					}
+					game_panel.drawNinjutsuPosition(ninjutsu_command.pos, true, ch);
 				}
 				else if (x >= 20)
 				{
@@ -805,11 +823,8 @@ class PlayerUI extends JFrame
 					switch (input_term)
 					{
 					case NONE: // MOVE - select kunoichi
-						System.err.println("NONE ===");
-						System.err.println(pos);
 						for (Unit kunoichi : ts.my_state.kunoichis)
 						{
-							System.err.println(kunoichi.pos);
 							if (pos.equals(kunoichi.pos))
 							{
 								if (kunoichi_roots[kunoichi.id].length() > 0) break;
@@ -820,7 +835,6 @@ class PlayerUI extends JFrame
 								break;
 							}
 						}
-						System.err.println("END === ");
 						break;
 					case MOVE:
 						if (kunoichi_moving.pos.distanceTo(pos) > 1) return;
@@ -871,7 +885,14 @@ class PlayerUI extends JFrame
 						default:
 							input_term = InputTerm.NONE;
 							ninjutsu_command.pos = pos;
-							game_panel.drawNinjutsuPosition(pos, false);
+							String ch = "";
+							switch (ninjutsu_command.type)
+							{
+							case DROP_ROCK_MY_FIELD: ch = "O"; break;
+							case THUNDERSTROKE_MY_FIELD: ch = "X"; break;
+							case MAKE_MY_DUMMY: ch = "@"; break;
+							}
+							game_panel.drawNinjutsuPosition(pos, false, ch);
 							break;
 						}
 						break;
