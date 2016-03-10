@@ -407,11 +407,15 @@ class AI
 		old_ninjutsu_command.copyFrom(ninjutsu_command);
 	}
 	
+	private int[][] makeFieldSizeIntTable(FieldState fs)
+	{
+		return new int[fs.field_size.row][fs.field_size.col];
+	}
+	
 	private int[][] findSoulDistanceTable(FieldState fs)
 	{
-		RowCol size = fs.field_size;
 		FieldObject[][] field = fs.field;
-		int[][] table = new int[size.row][size.col];
+		int[][] table = makeFieldSizeIntTable(fs);
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
 		for (RowCol rc : fs.souls)
 		{
