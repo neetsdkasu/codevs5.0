@@ -520,7 +520,32 @@ class AI
 	
 	private void searchAllKunoichiRoot(int[][] souls_table, int s, int n, RowCol pos, String root, Map<Integer, String> roots)
 	{
-		if (s != n && souls_table[pos.row][pos.col] == 0) return;
+		if (s != n && souls_table[pos.row][pos.col] == 0)
+		{
+			boolean flag = false;
+			int[] add_col = { 0, 1, 0, -1}, add_row = { -1, 0, 1, 0};
+			int p = 0;
+			switch (root.charAt(root.length() - 1))
+			{
+				case 'U': p = 0; break;
+				case 'R': p = 1; break;
+				case 'D': p = 2; break;
+				case 'L': p = 3; break;
+			}
+			RowCol xx, yy;
+			xx = pos.move(add_row[(p + 1) & 3], add_col[(p + 1) & 3]);
+			yy =  xx.move(add_row[(p + 2) & 3], add_col[(p + 2) & 3]);
+			flag |= souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] == 0;
+			xx = pos.move(add_row[(p + 3) & 3], add_col[(p + 3) & 3]);
+			yy =  xx.move(add_row[(p + 2) & 3], add_col[(p + 2) & 3]);
+			flag |= souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] == 0;
+			xx = pos.move(add_row[p], add_col[p]);
+			yy =  xx.move(add_row[p], add_col[p]);
+			flag |= yy.row >= 0 && yy.row < souls_table.length
+				 && yy.col >= 0 && xx.col < souls_table[0].length
+				 && souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] > 0;
+			if (flag == false) return;
+		}
 		roots.put(souls_table[pos.row][pos.col], root);
 		if (n == 0) return;
 		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(1, 0),  root + "D", roots);
