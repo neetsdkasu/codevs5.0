@@ -819,12 +819,14 @@ class AI
 	
 	private void computeInner(TurnState ts)
 	{
+		/*
 		int[][] rival_kunoichiDistanceTable = makeFieldSizeIntTable(ts.rival_state);
 		getKunoichiDistanceTable(ts.rival_state, rival_kunoichiDistanceTable);
 		
 		computeJoinMyField(ts);
 		
 		computePartitioning(ts, rival_kunoichiDistanceTable);
+		*/
 		
 		mappingDogs(ts.my_state);
 		
