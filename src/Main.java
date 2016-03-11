@@ -803,7 +803,7 @@ class AI
 		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
 			List<RowCol> list = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
-			RowCol pos = list.get(list.size() - 1);
+			RowCol pos = list.isEmpty() ? kunoichi.pos : list.get(list.size() - 1);
 			if (ts.my_state.field[pos.row][pos.col + 1] == FieldObject.DOG
 				|| ts.my_state.field[pos.row][pos.col - 1] == FieldObject.DOG
 				|| ts.my_state.field[pos.row + 1][pos.col] == FieldObject.DOG
