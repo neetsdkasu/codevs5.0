@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -360,7 +361,7 @@ class TurnState
 class AI
 {
 	public static final String NAME = "DefeatRandomAI";
-
+	
 	private TurnState old_state = null;
 	private final Ninjutsu  ninjutsu_command = new Ninjutsu(), old_ninjutsu_command = new Ninjutsu();
 	private String[]  kunoichi_commands, old_kunoitchi_commands;
@@ -612,8 +613,199 @@ class AI
 		kunoichi_commands[kunoichi.id] = root;
 	}
 	
+	private void labelingFloor(FieldState fs, int[][] labelTable, int label, int row, int col)
+	{
+		if (fs.field[row][col] != FieldObject.FLOOR) return;
+		if (labelTable[row][col] != 0) return;
+		labelTable[row][col] = label;
+		labelingFloor(fs, labelTable, label, row + 1, col);
+		labelingFloor(fs, labelTable, label, row - 1, col);
+		labelingFloor(fs, labelTable, label, row, col + 1);
+		labelingFloor(fs, labelTable, label, row, col - 1);
+	}
+	
+	private int getLabelingFloor(FieldState fs, int[][] labelTable)
+	{
+		int label = 0;
+		for (int i = 0; i < fs.field_size.row; i++)
+		{
+			for (int j = 0; j < fs.field_size.col; j++)
+			{
+				if (labelTable[i][j] == 0)
+				{
+					label++;
+					labelingFloor(fs, labelTable, label, i, j);
+				}
+			}
+		}
+		return label;
+	}
+	
+	private int getNinjutsuCost(TurnState ts, NinjutsuType type)
+	{
+		return ts.ninjutsu_costs[type.ordinal()];
+	}
+	
+	private List<RowCol> getJointPos(FieldState fs)
+	{
+		List<RowCol> list = new ArrayList<>();
+		int[][] labelingFloor = makeFieldSizeIntTable(fs);
+		int labels = getLabelingFloor(fs, labelingFloor);
+		if (labels < 2) return list;
+		for (int i = 1; i < fs.field_size.row - 1; i++)
+		{
+			for (int j = 1; j < fs.field_size.col - 1; j++)
+			{
+				if (labelingFloor[i][j] == 0
+					&& (
+						(labelingFloor[i + 1][j] != 0
+							&& labelingFloor[i - 1][j] != 0
+							&& labelingFloor[i + 1][j] != labelingFloor[i - 1][j]
+						)
+						||
+						(labelingFloor[i][j + 1] != 0
+							&& labelingFloor[i][j - 1] != 0
+							&& labelingFloor[i][j + 1] != labelingFloor[i][j - 1])
+						))
+				{
+					list.add(new RowCol(i, j));
+				}
+			}
+		}
+		return list;
+	}
+	
+	private List<RowCol> getPartitioningPos(FieldState fs)
+	{
+		List<RowCol> list = new ArrayList<>();
+		int[][] labelingFloor = makeFieldSizeIntTable(fs);
+		int labels = getLabelingFloor(fs, labelingFloor);
+		
+		boolean[] kunoichi_f = new boolean[labels];
+		for (Unit kunoichi : fs.kunoichis)
+		{
+			kunoichi_f[labelingFloor[kunoichi.pos.row][kunoichi.pos.col]] = true;
+		}
+		
+		for (int i = 1; i < fs.field_size.row - 1; i++)
+		{
+			for (int j = 1; j < fs.field_size.col - 1; j++)
+			{
+				int f = labelingFloor[i][j];
+				if (kunoichi_f[f] == false) continue;
+				
+				if ((labelingFloor[i + 1][j] == f 
+						&& labelingFloor[i - 1][j] == f
+						&& (labelingFloor[i][j - 1] == 0 || labelingFloor[i + 1][j - 1] == 0)
+						&& (labelingFloor[i][j + 1] == 0 || labelingFloor[i + 1][j + 1] == 0))
+					||
+					(labelingFloor[i][j + 1] == f 
+						&& labelingFloor[i][j - 1] == f
+						&& (labelingFloor[i - 1][j] == 0 || labelingFloor[i - 1][j + 1] == 0)
+						&& (labelingFloor[i + 1][j] == 0 || labelingFloor[i + 1][j + 1] == 0))
+					)
+				{
+					list.add(new RowCol(i, j));
+				}
+			}
+		}
+		return list;
+	}
+	
+	private void computeJoinMyField(TurnState ts)
+	{
+		if (ninjutsu_command.type != null) return;
+		if (ts.my_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.THUNDERSTROKE_MY_FIELD)) return;
+		
+		List<RowCol> list = getJointPos(ts.my_state);
+		if (list.isEmpty()) return;
+		
+		RowCol pos = null;
+		int d = -1;
+		for (RowCol rc : list)
+		{
+			int td = 0;
+			for (Unit kunoichi : ts.my_state.kunoichis)
+			{
+				td += rc.distanceTo(kunoichi.pos);
+			}
+			if (td > d)
+			{
+				d = td;
+				pos = rc;
+			}
+		}
+		if (pos == null) return;
+		
+		ninjutsu_command.type = NinjutsuType.THUNDERSTROKE_MY_FIELD;
+		ninjutsu_command.pos = pos;
+		ts.my_state.field[pos.row][pos.col] = FieldObject.FLOOR;
+	}
+	
+	private int getKunoichiDistanceTable(FieldState fs, int[][] table)
+	{
+		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
+		for (Unit kunoichi : fs.kunoichis)
+		{
+			cur.addFirst(kunoichi.pos);
+			table[kunoichi.pos.row][kunoichi.pos.col] = 1;
+		}
+		int d = 1;
+		int[] add_row = { 1, 0, -1, 0};
+		int[] add_col = { 0, 1, 0, -1};
+		while (cur.isEmpty() == false)
+		{
+			d++;
+			next.clear();
+			for (RowCol pos : cur)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					RowCol rc = pos.move(add_row[i], add_col[i]);
+					if (table[rc.row][rc.col] != 0) continue;
+					if (fs.field[rc.row][rc.col] != FieldObject.FLOOR) continue;
+					table[rc.row][rc.col] = d;
+					next.addFirst(rc);
+				}
+			}
+			temp = next; next = cur; cur = temp;
+		}
+		return d;
+	}
+	
+	private void computePartitioning(TurnState ts, int[][] kunoichiDistanceTable)
+	{
+		if (ninjutsu_command.type != null) return;
+		if (ts.my_state.ninja_enegy <= getNinjutsuCost(ts, NinjutsuType.DROP_ROCK_RIVAL_FIELD)) return;
+		
+		List<RowCol> list= getPartitioningPos(ts.rival_state);
+		if (list.isEmpty()) return;
+		
+		int[] ds = new int[list.size()];
+		Integer[] idx = new Integer[ds.length];
+		for (int i = 0; i < list.size(); i++)
+		{
+			RowCol rc = list.get(i);
+			ds[i] = kunoichiDistanceTable[rc.row][rc.col];
+			idx[i] = Integer.valueOf(i);
+		}
+		Arrays.sort(idx, (a, b) -> ds[a.intValue()] - ds[b.intValue()] );
+		
+		RowCol pos = list.get(idx[0].intValue());
+		
+		ninjutsu_command.type = NinjutsuType.DROP_ROCK_RIVAL_FIELD;
+		ninjutsu_command.pos = pos;
+	}
+	
 	private void computeInner(TurnState ts)
 	{
+		int[][] rival_kunoichiDistanceTable = makeFieldSizeIntTable(ts.rival_state);
+		getKunoichiDistanceTable(ts.rival_state, rival_kunoichiDistanceTable);
+		
+		computeJoinMyField(ts);
+		
+		computePartitioning(ts, rival_kunoichiDistanceTable);
+		
 		mappingDogs(ts.my_state);
 		
 		for (Unit kunoichi : ts.my_state.kunoichis)
