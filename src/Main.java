@@ -532,12 +532,14 @@ class AI
 			int p = 0;
 			switch (root.charAt(root.length() - 1))
 			{
-				case 'U': p = 0; break;
-				case 'R': p = 1; break;
-				case 'D': p = 2; break;
-				case 'L': p = 3; break;
+				case 'U': p = 0; if (pos.row == 0) return; break;
+				case 'R': p = 1; if (pos.col == souls_table[0].length - 1) return; break;
+				case 'D': p = 2; if (pos.row == souls_table.length - 1) return; break;
+				case 'L': p = 3; if (pos.col == 0) return; break;
 			}
 			RowCol xx, yy;
+			xx = pos.move(add_row[p], add_col[p]);
+			if (souls_table[xx.row][xx.col] < 3) return;
 			xx = pos.move(add_row[(p + 1) & 3], add_col[(p + 1) & 3]);
 			yy =  xx.move(add_row[(p + 2) & 3], add_col[(p + 2) & 3]);
 			flag |= souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] == 0;
@@ -547,7 +549,7 @@ class AI
 			xx = pos.move(add_row[p], add_col[p]);
 			yy =  xx.move(add_row[p], add_col[p]);
 			flag |= yy.row >= 0 && yy.row < souls_table.length
-				 && yy.col >= 0 && xx.col < souls_table[0].length
+				 && yy.col >= 0 && yy.col < souls_table[0].length
 				 && souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] > 0;
 			if (flag == false) return;
 		}
