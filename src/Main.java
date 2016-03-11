@@ -797,6 +797,26 @@ class AI
 		ninjutsu_command.pos = pos;
 	}
 	
+	private void computeTurnCut(TurnState ts)
+	{
+		if (ts.my_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.TURN_CUTTING)) return;
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			List<RowCol> list = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+			RowCol pos = list.get(list.size() - 1);
+			if (ts.my_state.field[pos.row][pos.col + 1] == FieldObject.DOG
+				|| ts.my_state.field[pos.row][pos.col - 1] == FieldObject.DOG
+				|| ts.my_state.field[pos.row + 1][pos.col] == FieldObject.DOG
+				|| ts.my_state.field[pos.row - 1][pos.col] == FieldObject.DOG)
+			{
+				ninjutsu_command.clear();
+				ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
+				ninjutsu_command.kunoichi_id = kunoichi.id;
+				return;
+			}
+		}
+	}
+	
 	private void computeInner(TurnState ts)
 	{
 		int[][] rival_kunoichiDistanceTable = makeFieldSizeIntTable(ts.rival_state);
@@ -813,6 +833,8 @@ class AI
 			int[][] souls_table = findSoulDistanceTable(ts.my_state);
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
+		
+		computeTurnCut(ts);
 	}
 }
 
