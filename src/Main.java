@@ -366,6 +366,9 @@ class AI
 	private final Ninjutsu  ninjutsu_command = new Ninjutsu(), old_ninjutsu_command = new Ninjutsu();
 	private String[]  kunoichi_commands, old_kunoitchi_commands;
 	
+	private final Deque<FieldObject[][]> field_backup_stack = new ArrayDeque<>();
+	private final Deque<Unit[]> dogs_backup_stack = new ArrayDeque<>();
+	
 	private void initCompute(TurnState ts)
 	{
 		ninjutsu_command.clear();
@@ -580,6 +583,51 @@ class AI
 		return list;
 	}
 	
+	private void backupDogs(FieldState fs)
+	{
+		Unit[] dogs = Arrays.copyOf(fs.dogs, fs.dogs.length);
+		dogs_backup_stack.addFirst(fs.dogs);
+		fs.dogs = dogs;
+	}
+	
+	private void restoreDogs(FieldState fs)
+	{
+		if (dogs_backup_stack.isEmpty()) return;
+		fs.dogs = dogs_backup_stack.removeFirst();
+	}
+	
+	private void backupField(FieldState fs)
+	{
+		FieldObject[][] field = new FieldObject[fs.field.length][];
+		for (int i = 0; i < field.length; i++)
+		{
+			field[i] = Arrays.copyOf(fs.field[i], fs.field[i].length);
+		}
+		field_backup_stack.addFirst(fs.field);
+		fs.field = field;
+	}
+	
+	private void restoreField(FieldState fs)
+	{
+		if (field_backup_stack.isEmpty()) return;
+		fs.field = field_backup_stack.removeFirst();
+	}
+	
+	private void dropBackupedField(int n)
+	{
+		if (field_backup_stack.size() <= n || n < 1)
+		{
+			field_backup_stack.clear();
+		}
+		else
+		{
+			for (int i = 0; i < n; i++)
+			{
+				field_backup_stack.removeFirst();
+			}
+		}
+	}
+	
 	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi, FieldState fs, int s)
 	{
 		Map<Integer, String> roots = new HashMap<>();
@@ -600,6 +648,7 @@ class AI
 		}
 		List<RowCol> path = parseRoot(kunoichi.pos, root);
 		RowCol from = kunoichi.pos;
+		backupField(fs);
 		for (RowCol rc : path)
 		{
 			fs.souls.remove(rc);
@@ -819,6 +868,23 @@ class AI
 		}
 	}
 	
+	private Unit checkDanger(FieldState fs)
+	{
+		for (Unit kunoichi : fs.kunoichis)
+		{
+			List<RowCol> list = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+			RowCol pos = list.isEmpty() ? kunoichi.pos : list.get(list.size() - 1);
+			if (fs.field[pos.row + 1][pos.col] == FieldObject.DOG
+				|| fs.field[pos.row - 1][pos.col] == FieldObject.DOG
+				|| fs.field[pos.row][pos.col + 1] == FieldObject.DOG
+				|| fs.field[pos.row][pos.col - 1] == FieldObject.DOG)
+			{
+				return kunoichi;
+			}
+		}
+		return null;
+	}
+	
 	private void computeInner(TurnState ts)
 	{
 		/*
@@ -829,7 +895,8 @@ class AI
 		
 		computePartitioning(ts, rival_kunoichiDistanceTable);
 		*/
-		
+
+		backupField(ts.my_state);
 		mappingDogs(ts.my_state);
 		
 		for (Unit kunoichi : ts.my_state.kunoichis)
@@ -838,7 +905,40 @@ class AI
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
 		
-		computeTurnCut(ts);
+		Unit dangerKunoichi = checkDanger(ts.my_state);
+		if (dangerKunoichi != null)
+		{
+			if (ninjutsu_command.type == null && ts.my_state.ninja_enegy >= getNinjutsuCost(ts, NinjutsuType.TURN_CUTTING))
+			{
+				ninjutsu_command.clear();
+				ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
+				ninjutsu_command.kunoichi_id = dangerKunoichi.id;
+				dropBackupedField(2);
+				restoreField(ts.my_state);
+				backupField(ts.my_state);
+				backupDogs(ts.my_state);
+				List<Unit> dogs = new ArrayList<>(Arrays.asList(ts.my_state.dogs));
+				for (Unit dog : ts.my_state.dogs)
+				{
+					RowCol df = dangerKunoichi.pos.subtractFrom(dog.pos);
+					if ((Math.abs(df.row) | Math.abs(df.col)) == 1)
+					{
+						dogs.remove(dog);
+					}
+				}
+				ts.my_state.dogs = dogs.toArray(new Unit[0]);
+				for (int i = 0; i < kunoichi_commands.length; i++)
+				{
+					kunoichi_commands[i] = "";
+				}
+				computeInner(ts);
+				restoreDogs(ts.my_state);
+			}
+		}
+		
+		// computeTurnCut(ts);
+		
+		restoreField(ts.my_state);
 	}
 }
 
