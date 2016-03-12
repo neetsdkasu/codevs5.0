@@ -594,6 +594,18 @@ class AI
 		return list;
 	}
 	
+	private <T> void dropBackupedStack(Deque<T> stack, int n)
+	{
+		if (stack.size() <= n || n < 1)
+		{
+			stack.clear();
+		}
+		else
+		{
+			for (int i = 0; i < n; i++) stack.removeFirst();
+		}
+	}
+	
 	private void backupDogs(FieldState fs)
 	{
 		Unit[] dogs = Arrays.copyOf(fs.dogs, fs.dogs.length);
@@ -607,15 +619,35 @@ class AI
 		fs.dogs = dogs_backup_stack.removeFirst();
 	}
 	
-	private void backupField(FieldState fs)
+	private void dropBackupedDogs(int n)
 	{
-		FieldObject[][] field = new FieldObject[fs.field.length][];
+		dropBackupedStack(dogs_backup_stack, n);
+	}
+	
+	private void copyField(FieldObject[][] src, FieldObject[][] dest)
+	{
+		for (int i = 0; i < src.length; i++)
+		{
+			System.arraycopy(src[i], 0, dest[i], 0, dest[i].length);
+		}
+	}
+	
+	private FieldObject[][] copyFieldOf(FieldObject[][] src)
+	{
+		FieldObject[][] field = new FieldObject[src.length][];
 		for (int i = 0; i < field.length; i++)
 		{
-			field[i] = Arrays.copyOf(fs.field[i], fs.field[i].length);
+			field[i] = Arrays.copyOf(src[i], src[i].length);
 		}
+		return field;
+	}
+	
+	private FieldObject[][] backupField(FieldState fs)
+	{
+		FieldObject[][] field = copyFieldOf(fs.field);
 		field_backup_stack.addFirst(fs.field);
 		fs.field = field;
+		return field_backup_stack.peekFirst();
 	}
 	
 	private void restoreField(FieldState fs)
@@ -626,17 +658,7 @@ class AI
 	
 	private void dropBackupedField(int n)
 	{
-		if (field_backup_stack.size() <= n || n < 1)
-		{
-			field_backup_stack.clear();
-		}
-		else
-		{
-			for (int i = 0; i < n; i++)
-			{
-				field_backup_stack.removeFirst();
-			}
-		}
+		dropBackupedStack(field_backup_stack, n);
 	}
 	
 	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi, FieldState fs, int s)
@@ -859,15 +881,11 @@ class AI
 		ninjutsu_command.pos = pos;
 	}
 	
-	private void computeTurnCut(TurnState ts, Unit dangerKunoichi)
+	private void computeTurnCut(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi)
 	{
 		ninjutsu_command.clear();
 		ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
 		ninjutsu_command.kunoichi_id = dangerKunoichi.id;
-		dropBackupedField(2);
-		restoreField(ts.my_state);
-		backupField(ts.my_state);
-		backupDogs(ts.my_state);
 		List<Unit> dogs = new ArrayList<>(Arrays.asList(ts.my_state.dogs));
 		for (Unit dog : ts.my_state.dogs)
 		{
@@ -877,13 +895,13 @@ class AI
 				dogs.remove(dog);
 			}
 		}
+		copyField(clean_field, ts.my_state.field);
 		ts.my_state.dogs = dogs.toArray(new Unit[0]);
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
 			kunoichi_commands[i] = "";
 		}
 		computeInner(ts);
-		restoreDogs(ts.my_state);
 	}
 	
 	private Unit checkDanger(FieldState fs)
@@ -903,7 +921,7 @@ class AI
 		return null;
 	}
 	
-	private boolean computeEmergencies(TurnState ts)
+	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field)
 	{
 		Unit dangerKunoichi = checkDanger(ts.my_state);
 		if (dangerKunoichi == null) return false;
@@ -921,7 +939,7 @@ class AI
 			case MAKE_MY_DUMMY:
 				break;
 			case TURN_CUTTING:
-				computeTurnCut(ts, dangerKunoichi);
+				computeTurnCut(ts, clean_field, dangerKunoichi);
 				break loop_label;
 			}
 		}
@@ -929,13 +947,16 @@ class AI
 		return ninjutsu_command.exists();
 	}
 	
-	private void computeNinjutsu(TurnState ts)
+	private boolean computeNinjutsu(TurnState ts, FieldObject[][] clean_field)
 	{
-		if (ninjutsu_command.type != null) return;
+		if (ninjutsu_command.type != null) return false;
 		
-		if (computeEmergencies(ts)) return;
+		// backupField (before move Ninja1) (before move Ninja0) (before Mapping dogs)
+		
+		if (computeEmergencies(ts, clean_field)) return true;
 		
 		// attack ninjutsu
+		return false;
 	}
 
 	
@@ -949,8 +970,8 @@ class AI
 		
 		computePartitioning(ts, rival_kunoichiDistanceTable);
 		*/
-
-		backupField(ts.my_state);
+		
+		FieldObject[][] clean_field = backupField(ts.my_state); // save before mapping dogs
 		mappingDogs(ts.my_state);
 		
 		for (Unit kunoichi : ts.my_state.kunoichis)
@@ -959,7 +980,11 @@ class AI
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
 		
-		computeNinjutsu(ts);
+		backupField(ts.my_state); // save moved Ninjas 
+		
+		computeNinjutsu(ts, clean_field);
+		
+		dropBackupedField(3);
 		
 		restoreField(ts.my_state);
 	}
