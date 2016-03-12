@@ -625,11 +625,12 @@ class AI
 		dropBackupedStack(dogs_backup_stack, n);
 	}
 	
-	private void backupSouls(FieldState fs)
+	private List<RowCol> backupSouls(FieldState fs)
 	{
 		List<RowCol> souls = new ArrayList<>(fs.souls);
 		souls_backup_stack.addFirst(fs.souls);
 		fs.souls = souls;
+		return souls_backup_stack.peekFirst();
 	}
 	
 	private void restoreSouls(FieldState fs)
@@ -899,7 +900,7 @@ class AI
 		ninjutsu_command.pos = pos;
 	}
 	
-	private void computeTurnCut(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi)
+	private void computeTurnCut(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi, List<RowCol> clean_souls)
 	{
 		ninjutsu_command.clear();
 		ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
@@ -914,6 +915,7 @@ class AI
 			}
 		}
 		copyField(clean_field, ts.my_state.field);
+		ts.my_state.souls = new ArrayList<>(clean_souls);
 		ts.my_state.dogs = dogs.toArray(new Unit[0]);
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
@@ -939,7 +941,7 @@ class AI
 		return null;
 	}
 	
-	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field)
+	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		Unit dangerKunoichi = checkDanger(ts.my_state);
 		if (dangerKunoichi == null) return false;
@@ -957,7 +959,7 @@ class AI
 			case MAKE_MY_DUMMY:
 				break;
 			case TURN_CUTTING:
-				computeTurnCut(ts, clean_field, dangerKunoichi);
+				computeTurnCut(ts, clean_field, dangerKunoichi, clean_souls);
 				break loop_label;
 			}
 		}
@@ -965,13 +967,13 @@ class AI
 		return ninjutsu_command.exists();
 	}
 	
-	private boolean computeNinjutsu(TurnState ts, FieldObject[][] clean_field)
+	private boolean computeNinjutsu(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		if (ninjutsu_command.type != null) return false;
 		
 		// backupField (before move Ninja1) (before move Ninja0) (before Mapping dogs)
 		
-		if (computeEmergencies(ts, clean_field)) return true;
+		if (computeEmergencies(ts, clean_field, clean_souls)) return true;
 		
 		// attack ninjutsu
 		return false;
@@ -990,6 +992,8 @@ class AI
 		*/
 		
 		FieldObject[][] clean_field = backupField(ts.my_state); // save before mapping dogs
+		List<RowCol> clean_souls = backupSouls(ts.my_state);
+		
 		mappingDogs(ts.my_state);
 		
 		for (Unit kunoichi : ts.my_state.kunoichis)
@@ -1001,13 +1005,15 @@ class AI
 		}
 		
 		backupField(ts.my_state); // save moved Ninjas 
+		backupSouls(ts.my_state);
 		
-		computeNinjutsu(ts, clean_field);
+		computeNinjutsu(ts, clean_field, clean_souls);
 		
 		dropBackupedField(3);
-		dropBackupedSouls(2);
+		dropBackupedSouls(3);
 		
 		restoreField(ts.my_state);
+		restoreSouls(ts.my_state);
 	}
 }
 
