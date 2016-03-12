@@ -681,7 +681,6 @@ class AI
 		}
 		List<RowCol> path = parseRoot(kunoichi.pos, root);
 		RowCol from = kunoichi.pos;
-		backupField(fs);
 		for (RowCol rc : path)
 		{
 			fs.souls.remove(rc);
@@ -976,6 +975,7 @@ class AI
 		
 		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
+			backupField(ts.my_state);
 			int[][] souls_table = findSoulDistanceTable(ts.my_state);
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
