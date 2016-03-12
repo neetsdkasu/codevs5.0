@@ -369,6 +369,15 @@ class AI
 	private final Deque<FieldObject[][]> field_backup_stack = new ArrayDeque<>();
 	private final Deque<Unit[]> dogs_backup_stack = new ArrayDeque<>();
 	
+	private NinjutsuType[] emergencies = {
+		NinjutsuType.SPEED_UP,
+		NinjutsuType.DROP_ROCK_MY_FIELD,
+		NinjutsuType.THUNDERSTROKE_MY_FIELD,
+		NinjutsuType.MAKE_MY_DUMMY,
+		NinjutsuType.TURN_CUTTING
+	};
+	
+	
 	private void initCompute(TurnState ts)
 	{
 		ninjutsu_command.clear();
@@ -376,6 +385,8 @@ class AI
 		{
 			kunoichi_commands = new String[ts.my_state.kunoichis.length];
 			old_kunoitchi_commands = new String[kunoichi_commands.length];
+			
+			Arrays.sort(emergencies, (a, b) -> ts.ninjutsu_costs[a.ordinal()] - ts.ninjutsu_costs[b.ordinal()] );
 		}
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
