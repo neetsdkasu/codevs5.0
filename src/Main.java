@@ -946,6 +946,48 @@ class AI
 		return false;
 	}
 	
+	private boolean computeEmergencyThunder(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi,  List<RowCol> clean_souls)
+	{
+		String[] temp_cmds = Arrays.copyOf(kunoichi_commands, kunoichi_commands.length);
+		for (int i = -2; i <= 2; i++)
+		{
+			for (int j = -2; j <= 2; j++)
+			{
+				RowCol pos = dangerKunoichi.pos.move(i, j);
+				if (dangerKunoichi.pos.distanceTo(pos) > 2) continue;
+				if (pos.row < 1 || pos.col < 1 || pos.row >= clean_field.length - 1 || pos.col >= clean_field[0].length - 1) continue;
+				if (clean_field[pos.row][pos.col] != FieldObject.ROCK) continue;
+				
+				copyField(clean_field, ts.my_state.field);
+				ts.my_state.souls = new ArrayList<>(clean_souls);
+				
+				ts.my_state.field[pos.row][pos.col] = FieldObject.FLOOR;
+				
+				mappingDogs(ts.my_state);
+				
+				for (Unit kunoichi : ts.my_state.kunoichis)
+				{
+					kunoichi_commands[kunoichi.id] = "";
+					int[][] souls_table = findSoulDistanceTable(ts.my_state);
+					computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
+				}
+				
+				Unit temp_danger = checkDanger(ts.my_state);
+				
+				if (temp_danger == null)
+				{
+					ninjutsu_command.clear();
+					ninjutsu_command.type = NinjutsuType.THUNDERSTROKE_MY_FIELD;
+					ninjutsu_command.pos = pos;
+					return true;
+				}
+				
+			}
+		}
+		kunoichi_commands = temp_cmds;
+		return false;
+	}
+	
 	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		Unit dangerKunoichi = checkDanger(ts.my_state);
@@ -962,7 +1004,10 @@ class AI
 				if (computeSppedUp(ts, clean_field, clean_souls)) break loop_label;
 				break;
 			case DROP_ROCK_MY_FIELD:
+				break;
 			case THUNDERSTROKE_MY_FIELD:
+				if (computeEmergencyThunder(ts, clean_field, dangerKunoichi, clean_souls)) break loop_label;
+				break;
 			case MAKE_MY_DUMMY:
 				break;
 			case TURN_CUTTING:
