@@ -469,31 +469,6 @@ class AI
 					table[i][j] = 1;
 					continue;
 				}
-				if (fs.field[i][j] == FieldObject.ROCK)
-				{
-					if (i > 1 && i < fs.field_size.row - 2)
-					{
-						if (fs.field[i - 1][j] == FieldObject.FLOOR
-							&& fs.field[i - 2][j] == FieldObject.FLOOR
-							&& fs.field[i + 1][j] == FieldObject.FLOOR
-							&& fs.field[i + 2][j] == FieldObject.FLOOR)
-						{
-							table[i][j] = 2;
-							continue;
-						}
-					}
-					else if (j > 1 && j < fs.field_size.col - 2)
-					{
-						if (fs.field[i][j - 1] == FieldObject.FLOOR
-							&& fs.field[i][j - 2] == FieldObject.FLOOR
-							&& fs.field[i][j + 1] == FieldObject.FLOOR
-							&& fs.field[i][j + 2] == FieldObject.FLOOR)
-						{
-							table[i][j] = 2;
-							continue;
-						}
-					}
-				}
 				if (table[i][j] != 0 || fs.field[i][j] != FieldObject.FLOOR) continue;
 				int max = 0;
 				RowCol rc = new RowCol(i, j);
