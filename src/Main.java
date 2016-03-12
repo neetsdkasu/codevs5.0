@@ -368,6 +368,7 @@ class AI
 	
 	private final Deque<FieldObject[][]> field_backup_stack = new ArrayDeque<>();
 	private final Deque<Unit[]> dogs_backup_stack = new ArrayDeque<>();
+	private final Deque<List<RowCol>> souls_backup_stack = new ArrayDeque<>();
 	
 	private NinjutsuType[] emergencies = {
 		NinjutsuType.SPEED_UP,
@@ -622,6 +623,24 @@ class AI
 	private void dropBackupedDogs(int n)
 	{
 		dropBackupedStack(dogs_backup_stack, n);
+	}
+	
+	private void backupSouls(FieldState fs)
+	{
+		List<RowCol> souls = new ArrayList<>(fs.souls);
+		souls_backup_stack.addFirst(fs.souls);
+		fs.souls = souls;
+	}
+	
+	private void restoreSouls(FieldState fs)
+	{
+		if (souls_backup_stack.isEmpty()) return;
+		fs.souls = souls_backup_stack.removeFirst();
+	}
+	
+	private void dropBackupedSouls(int n)
+	{
+		dropBackupedStack(souls_backup_stack, n);
 	}
 	
 	private void copyField(FieldObject[][] src, FieldObject[][] dest)
@@ -976,6 +995,7 @@ class AI
 		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
 			backupField(ts.my_state);
+			backupSouls(ts.my_state);
 			int[][] souls_table = findSoulDistanceTable(ts.my_state);
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
@@ -985,6 +1005,7 @@ class AI
 		computeNinjutsu(ts, clean_field);
 		
 		dropBackupedField(3);
+		dropBackupedSouls(2);
 		
 		restoreField(ts.my_state);
 	}
