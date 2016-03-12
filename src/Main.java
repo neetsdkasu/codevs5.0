@@ -919,7 +919,7 @@ class AI
 	private boolean computeSppedUp(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		String[] temp_cmds = Arrays.copyOf(kunoichi_commands, kunoichi_commands.length);
-		for (int i = 0; i < kunoichi_commands.length; i++) kunoichi_commands[i] = "";
+		
 		copyField(clean_field, ts.my_state.field);
 		ts.my_state.souls = new ArrayList<>(clean_souls);
 		
@@ -927,6 +927,7 @@ class AI
 		
 		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
+			kunoichi_commands[kunoichi.id] = "";
 			int[][] souls_table = findSoulDistanceTable(ts.my_state);
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 3);
 		}
