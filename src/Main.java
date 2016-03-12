@@ -859,24 +859,31 @@ class AI
 		ninjutsu_command.pos = pos;
 	}
 	
-	private void computeTurnCut(TurnState ts)
+	private void computeTurnCut(TurnState ts, Unit dangerKunoichi)
 	{
-		if (ts.my_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.TURN_CUTTING)) return;
-		for (Unit kunoichi : ts.my_state.kunoichis)
+		ninjutsu_command.clear();
+		ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
+		ninjutsu_command.kunoichi_id = dangerKunoichi.id;
+		dropBackupedField(2);
+		restoreField(ts.my_state);
+		backupField(ts.my_state);
+		backupDogs(ts.my_state);
+		List<Unit> dogs = new ArrayList<>(Arrays.asList(ts.my_state.dogs));
+		for (Unit dog : ts.my_state.dogs)
 		{
-			List<RowCol> list = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
-			RowCol pos = list.isEmpty() ? kunoichi.pos : list.get(list.size() - 1);
-			if (ts.my_state.field[pos.row][pos.col + 1] == FieldObject.DOG
-				|| ts.my_state.field[pos.row][pos.col - 1] == FieldObject.DOG
-				|| ts.my_state.field[pos.row + 1][pos.col] == FieldObject.DOG
-				|| ts.my_state.field[pos.row - 1][pos.col] == FieldObject.DOG)
+			RowCol df = dangerKunoichi.pos.subtractFrom(dog.pos);
+			if ((Math.abs(df.row) | Math.abs(df.col)) == 1)
 			{
-				ninjutsu_command.clear();
-				ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
-				ninjutsu_command.kunoichi_id = kunoichi.id;
-				return;
+				dogs.remove(dog);
 			}
 		}
+		ts.my_state.dogs = dogs.toArray(new Unit[0]);
+		for (int i = 0; i < kunoichi_commands.length; i++)
+		{
+			kunoichi_commands[i] = "";
+		}
+		computeInner(ts);
+		restoreDogs(ts.my_state);
 	}
 	
 	private Unit checkDanger(FieldState fs)
@@ -895,6 +902,42 @@ class AI
 		}
 		return null;
 	}
+	
+	private boolean computeEmergencies(TurnState ts)
+	{
+		Unit dangerKunoichi = checkDanger(ts.my_state);
+		if (dangerKunoichi == null) return false;
+		
+		loop_label:
+		for (int i = 0; i < emergencies.length; i++)
+		{
+			if (ts.my_state.ninja_enegy < getNinjutsuCost(ts, emergencies[i])) break;
+			
+			switch (emergencies[i])
+			{
+			case SPEED_UP:
+			case DROP_ROCK_MY_FIELD:
+			case THUNDERSTROKE_MY_FIELD:
+			case MAKE_MY_DUMMY:
+				break;
+			case TURN_CUTTING:
+				computeTurnCut(ts, dangerKunoichi);
+				break loop_label;
+			}
+		}
+		
+		return ninjutsu_command.exists();
+	}
+	
+	private void computeNinjutsu(TurnState ts)
+	{
+		if (ninjutsu_command.type != null) return;
+		
+		if (computeEmergencies(ts)) return;
+		
+		// attack ninjutsu
+	}
+
 	
 	private void computeInner(TurnState ts)
 	{
@@ -916,38 +959,7 @@ class AI
 			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
 		}
 		
-		Unit dangerKunoichi = checkDanger(ts.my_state);
-		if (dangerKunoichi != null)
-		{
-			if (ninjutsu_command.type == null && ts.my_state.ninja_enegy >= getNinjutsuCost(ts, NinjutsuType.TURN_CUTTING))
-			{
-				ninjutsu_command.clear();
-				ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
-				ninjutsu_command.kunoichi_id = dangerKunoichi.id;
-				dropBackupedField(2);
-				restoreField(ts.my_state);
-				backupField(ts.my_state);
-				backupDogs(ts.my_state);
-				List<Unit> dogs = new ArrayList<>(Arrays.asList(ts.my_state.dogs));
-				for (Unit dog : ts.my_state.dogs)
-				{
-					RowCol df = dangerKunoichi.pos.subtractFrom(dog.pos);
-					if ((Math.abs(df.row) | Math.abs(df.col)) == 1)
-					{
-						dogs.remove(dog);
-					}
-				}
-				ts.my_state.dogs = dogs.toArray(new Unit[0]);
-				for (int i = 0; i < kunoichi_commands.length; i++)
-				{
-					kunoichi_commands[i] = "";
-				}
-				computeInner(ts);
-				restoreDogs(ts.my_state);
-			}
-		}
-		
-		// computeTurnCut(ts);
+		computeNinjutsu(ts);
 		
 		restoreField(ts.my_state);
 	}
