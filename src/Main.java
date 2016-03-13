@@ -372,7 +372,6 @@ class AI
 	
 	private NinjutsuType[] emergencies = {
 		NinjutsuType.SPEED_UP,
-		NinjutsuType.DROP_ROCK_MY_FIELD,
 		NinjutsuType.THUNDERSTROKE_MY_FIELD,
 		NinjutsuType.MAKE_MY_DUMMY,
 		NinjutsuType.TURN_CUTTING
@@ -1002,8 +1001,6 @@ class AI
 			{
 			case SPEED_UP:
 				if (computeSppedUp(ts, clean_field, clean_souls)) break loop_label;
-				break;
-			case DROP_ROCK_MY_FIELD:
 				break;
 			case THUNDERSTROKE_MY_FIELD:
 				if (computeEmergencyThunder(ts, clean_field, dangerKunoichi, clean_souls)) break loop_label;
