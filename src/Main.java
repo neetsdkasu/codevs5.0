@@ -512,7 +512,7 @@ class AI
 		}
 	}
 	
-	private void searchAllKunoichiRoot(int[][] souls_table, int s, int n, RowCol pos, String root, Map<Integer, String> roots)
+	private void searchAllKunoichiRoot(int[][] souls_table, int s, int n, RowCol pos, String root, Map<Integer, List<String>> roots)
 	{
 		if (s != n && souls_table[pos.row][pos.col] == 0)
 		{
@@ -542,7 +542,12 @@ class AI
 				 && souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] > 0;
 			if (flag == false) return;
 		}
-		roots.put(souls_table[pos.row][pos.col], root);
+		Integer key = Integer.valueOf(souls_table[pos.row][pos.col]);
+		if (roots.containsKey(key) == false)
+		{
+			roots.put(key, new ArrayList<>());
+		}
+		roots.get(key).add(root);
 		if (n == 0) return;
 		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(1, 0),  root + "D", roots);
 		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(-1, 0), root + "U", roots);
@@ -657,37 +662,86 @@ class AI
 	
 	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi, FieldState fs, int s)
 	{
-		Map<Integer, String> roots = new HashMap<>();
+		Map<Integer, List<String>> roots = new HashMap<>();
 		searchAllKunoichiRoot(souls_table, s, s, kunoichi.pos, "", roots);
-		int min = Integer.MAX_VALUE;
-		String root = "";
+		int min = Integer.MAX_VALUE, min2 = Integer.MAX_VALUE;
+		List<String>
+			rootList = new ArrayList<>(Arrays.asList("NN")),
+			rootList2 = new ArrayList<>();
 		for (Integer key : roots.keySet())
 		{
-			if (key.intValue() >= 3 && key.intValue() < min)
+			if (key.intValue() >= 3)
 			{
-				root = roots.get(key);
-				min = key.intValue();
+				if (key.intValue() < min)
+				{
+					rootList2 = rootList;
+					min2 = min;
+					rootList = roots.get(key);
+					min = key.intValue();
+				}
+				else if (key.intValue() < min2)
+				{
+					rootList2 = roots.get(key);
+					min2 = key.intValue();
+				}
 			}
 		}
-		for (int i = root.length(); i < s; i++)
+		rootList.addAll(rootList2);
+		for (int i = 0; i < rootList.size(); i++)
 		{
-			root += "N";
-		}
-		List<RowCol> path = parseRoot(kunoichi.pos, root);
-		RowCol from = kunoichi.pos;
-		for (RowCol rc : path)
-		{
-			fs.souls.remove(rc);
-			if (fs.field[rc.row][rc.col] == FieldObject.ROCK)
+			String tmp_root = rootList.get(i);
+			for (int j = tmp_root.length(); j < s; j++)
 			{
-				RowCol df = from.subtractFrom(rc);
-				fs.field[rc.row][rc.col] = FieldObject.FLOOR;
-				from = rc;
-				df = rc.move(df.row, df.col);
-				fs.field[rc.row][rc.col] = FieldObject.ROCK;
+				tmp_root += "N";
+			}
+			rootList.set(i, tmp_root);
+		}
+		int[] rocks = new int[rootList.size()];
+		int[] souls = new int[rootList.size()];
+		RowCol[][] souls_pos = new RowCol[rootList.size()][3];
+		FieldObject[][][] fields = new FieldObject[rootList.size()][][];
+		for (int i = 0; i < rootList.size(); i++)
+		{
+			String root = rootList.get(i);
+			fields[i] = copyFieldOf(fs.field);
+			List<RowCol> path = parseRoot(kunoichi.pos, root);
+			RowCol from = kunoichi.pos;
+			for (RowCol rc : path)
+			{
+				if (fs.souls.contains(rc))
+				{
+					souls_pos[i][souls[i]] = rc;
+					souls[i]++;
+				}
+				if (fields[i][rc.row][rc.col] == FieldObject.ROCK)
+				{
+					rocks[i]++;
+					RowCol df = from.subtractFrom(rc);
+					fields[i][rc.row][rc.col] = FieldObject.FLOOR;
+					from = rc;
+					df = rc.move(df.row, df.col);
+					fields[i][rc.row][rc.col] = FieldObject.ROCK;
+				}
 			}
 		}
-		kunoichi_commands[kunoichi.id] = root;
+		int sel = 0;
+		for (int i = 1; i < rootList.size(); i++)
+		{
+			if (rocks[i] < rocks[sel])
+			{
+				sel = i;
+			}
+			else if (rocks[i] == rocks[sel] && souls[i] > souls[sel])
+			{
+				sel = i;
+			}
+		}
+		fs.field = fields[sel];
+		for (int i = 0; i < souls[sel]; i++)
+		{
+			fs.souls.remove(souls_pos[sel][i]);
+		}
+		kunoichi_commands[kunoichi.id] = rootList.get(sel);
 	}
 	
 	private void labelingFloor(FieldState fs, int[][] labelTable, int label, int row, int col)
