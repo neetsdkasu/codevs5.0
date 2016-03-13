@@ -28,18 +28,19 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Main
 {
 	public static void main(String[] args) throws Exception
 	{
-		System.out.println(AI.NAME);
 
 		StateScanner scanner = new StateScanner(System.in);
-		AI ai = new AI();
+		
 		
 		for (int loop = 0; loop < 300; loop++)
 		{
@@ -56,29 +57,15 @@ public class Main
 				break;
 			}
 			
-			try
-			{
-				ai.compute(ts);
-			}
-			catch (Throwable ex)
-			{
-				ex.printStackTrace();
-			}
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+			System.out.println("# " + loop);
+			System.out.println("my_state -------------------");
+			ts.my_state.mappingItems().printField();
 			
-			// output
-			if (ai.existsNinjutsu())
-			{
-				System.out.println(3);
-				System.out.println(ai.getNinjutsuCommand());
-			}
-			else
-			{
-				System.out.println(2);
-			}
-			System.out.println(ai.getKunoichiCommand(0));
-			System.out.println(ai.getKunoichiCommand(1));
+			System.out.println("rival_state ----------------");
+			ts.rival_state.mappingItems().printField();
+			
 			System.out.flush();
-
 		}
 	}
 }
@@ -259,7 +246,7 @@ class Ninjutsu
 
 enum FieldObject
 {
-	WALL, FLOOR, ROCK;
+	WALL, FLOOR, ROCK, DOG, KUNOICHI;
 	
 	public static FieldObject valueOf(char ch)
 	{
@@ -339,6 +326,41 @@ class FieldState
 	public int[]           ninjutsu_used_counts;
 	
 	public int getKunoichiCount() { return kunoichis.length; }
+	
+	public FieldState mappingItems()
+	{
+		for (Unit kunoichi : kunoichis)
+		{
+			field[kunoichi.pos.row][kunoichi.pos.col] = FieldObject.KUNOICHI;
+		}
+		for (Unit dog : dogs)
+		{
+			field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+		}
+		return this;
+	}
+	
+	public void printField()
+	{
+		List<RowCol> list = Arrays.asList(souls);
+		for (int i = 0; i < field_size.row; i++)
+		{
+			String ch = "";
+			for (int j = 0; j < field_size.col; j++)
+			{
+				RowCol pos = new RowCol(i, j);
+				switch (field[i][j])
+				{
+				case WALL: ch += "W"; break;
+				case ROCK: ch += list.contains(pos) ? "G" : "O"; break;
+				case FLOOR: ch += list.contains(pos) ? "S" : "_"; break;
+				case KUNOICHI: ch += "*"; break;
+				case DOG: ch += list.contains(pos) ? "8" : "d"; break;
+				}
+			}
+			System.out.println(ch);
+		}
+	}
 }
 
 class TurnState
@@ -354,95 +376,3 @@ class TurnState
 		return my_state.getKunoichiCount() + rival_state.getKunoichiCount() != 4;
 	}
 }
-
-class AI
-{
-	public static final String NAME = "Leonardone_AI";
-
-	private TurnState old_state = null;
-	private final Ninjutsu  ninjutsu_command = new Ninjutsu(), old_ninjutsu_command = new Ninjutsu();
-	private String[]  kunoichi_commands, old_kunoitchi_commands;
-	
-	private void initCompute(TurnState ts)
-	{
-		ninjutsu_command.clear();
-		if (kunoichi_commands == null)
-		{
-			kunoichi_commands = new String[ts.my_state.kunoichis.length];
-			old_kunoitchi_commands = new String[kunoichi_commands.length];
-		}
-		for (int i = 0; i < kunoichi_commands.length; i++)
-		{
-			kunoichi_commands[i] = "";
-		}
-	}
-	
-	public boolean existsNinjutsu()
-	{
-		return ninjutsu_command.exists();
-	}
-	
-	public String getNinjutsuCommand()
-	{
-		return ninjutsu_command.toString();
-	}
-	
-	public String getKunoichiCommand(int id)
-	{
-		return kunoichi_commands[id];
-	}
-
-	public void compute(TurnState ts)
-	{
-		initCompute(ts);
-		
-		computeInner(ts);
-		old_state = ts;
-		for (int i = 0; i < kunoichi_commands.length; i++)
-		{
-			old_kunoitchi_commands[i] = kunoichi_commands[i];
-		}
-		old_ninjutsu_command.copyFrom(ninjutsu_command);
-	}
-	
-	private int[][] findSoulDistanceTable(FieldState fs)
-	{
-		RowCol size = fs.field_size;
-		FieldObject[][] field = fs.field;
-		int[][] table = new int[size.row][size.col];
-		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
-		for (RowCol rc : fs.souls)
-		{
-			table[rc.row][rc.col] = 1;
-			cur.addFirst(rc);
-		}
-		int[] add_rows = {1, 0, -1,  0};
-		int[] add_cols = {0, 1,  0, -1};
-		int distance = 1;
-		while (cur.isEmpty() == false)
-		{
-			distance++;
-			next.clear();
-			for (RowCol rc : cur)
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					RowCol addrc = rc.move(add_rows[i], add_cols[i]);
-					if (table[addrc.row][addrc.col] != 0) continue;
-					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue;
-					table[addrc.row][addrc.col] = distance;
-					next.addFirst(addrc);
-				}
-			}
-			// swap cur next
-			temp = cur; cur = next; next = temp;
-		}
-		return table;
-	}
-		
-	private void computeInner(TurnState ts)
-	{
-		
-	}
-}
-
