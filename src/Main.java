@@ -262,7 +262,7 @@ class Ninjutsu
 
 enum FieldObject
 {
-	WALL, FLOOR, ROCK, DOG, DANGEROUS_ZONE;
+	WALL, FLOOR, ROCK, DOG, DANGEROUS_ZONE, VIRTUAL_ROCK;
 	
 	public static FieldObject valueOf(char ch)
 	{
@@ -1009,7 +1009,11 @@ class AI
 		{
 			ninjutsu_command.clear();
 			ninjutsu_command.type = NinjutsuType.SPEED_UP;
-			return true;
+			//if (checkSemiEmergencies(ts, clean_field, clean_souls) == false)
+			{
+				return true;
+			}
+			//ninjutsu_command.clear();
 		}
 		
 		kunoichi_commands = temp_cmds;
@@ -1058,9 +1062,8 @@ class AI
 		return false;
 	}
 	
-	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
+	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls, Unit dangerKunoichi)
 	{
-		Unit dangerKunoichi = checkDanger(ts.my_state);
 		if (dangerKunoichi == null) return false;
 		
 		loop_label:
@@ -1087,13 +1090,53 @@ class AI
 		return ninjutsu_command.exists();
 	}
 	
+	private boolean checkSemiEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
+	{
+		if (ts.rival_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.DROP_ROCK_RIVAL_FIELD)) return false;
+		FieldObject[][] virtualfield;
+		copyField(clean_field, ts.my_state.field);
+		mappingDogs(ts.my_state);
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+			if (path.isEmpty()) continue;
+			RowCol pos0, pos1 = kunoichi.pos, df, pos2;
+			for (int i = 0; i < path.size(); i++)
+			{
+				pos0 = pos1;
+				pos1 = path.get(i);
+				if (ts.my_state.field[pos0.row][pos0.col] != FieldObject.DANGEROUS_ZONE) continue;
+				switch (ts.my_state.field[pos1.row][pos1.col])
+				{
+				case FLOOR:
+				case DANGEROUS_ZONE:
+					if (clean_souls.contains(pos1)) break;
+					if (ninjutsu_command.type != null) return true;
+					virtualfield = copyFieldOf(clean_field);
+					virtualfield[pos1.row][pos1.col] = FieldObject.VIRTUAL_ROCK;
+					return computeEmergencies(ts, virtualfield, clean_souls, kunoichi);
+				case ROCK:
+					if (ninjutsu_command.type != null) return true;
+					df = pos0.subtractFrom(pos1);
+					pos2 = pos1.move(df.row, df.col);
+					virtualfield = copyFieldOf(clean_field);
+					virtualfield[pos2.row][pos2.col] = FieldObject.VIRTUAL_ROCK;
+					return computeEmergencies(ts, virtualfield, clean_souls, kunoichi);
+				}
+			}
+		}
+		return false;
+	}
+	
 	private boolean computeNinjutsu(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		if (ninjutsu_command.type != null) return false;
 		
 		// backupField (before move Ninja1) (before move Ninja0) (before Mapping dogs)
 		
-		if (computeEmergencies(ts, clean_field, clean_souls)) return true;
+		if (computeEmergencies(ts, clean_field, clean_souls, checkDanger(ts.my_state))) return true;
+		
+		if (checkSemiEmergencies(ts, clean_field, clean_souls)) return true;
 		
 		// attack ninjutsu
 		return false;
