@@ -686,7 +686,10 @@ class AI
 				}
 			}
 		}
-		rootList.addAll(rootList2);
+		if (fs.field[kunoichi.pos.row][kunoichi.pos.col] == FieldObject.DANGEROUS_ZONE)
+		{
+			rootList.addAll(rootList2);
+		}
 		for (int i = 0; i < rootList.size(); i++)
 		{
 			String tmp_root = rootList.get(i);
