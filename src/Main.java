@@ -351,11 +351,11 @@ class FieldState
 				RowCol pos = new RowCol(i, j);
 				switch (field[i][j])
 				{
-				case WALL: ch += "W"; break;
-				case ROCK: ch += list.contains(pos) ? "G" : "O"; break;
+				case WALL: ch += "#"; break;
+				case ROCK: ch += list.contains(pos) ? "8" : "o"; break;
 				case FLOOR: ch += list.contains(pos) ? "S" : "_"; break;
-				case KUNOICHI: ch += "*"; break;
-				case DOG: ch += list.contains(pos) ? "8" : "d"; break;
+				case KUNOICHI: ch += pos.equals(kunoichis[0].pos) ? "0" : "1"; break;
+				case DOG: ch += list.contains(pos) ? "$" : "d"; break;
 				}
 			}
 			System.out.println(ch);
