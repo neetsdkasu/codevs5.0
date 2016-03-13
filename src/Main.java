@@ -427,15 +427,25 @@ class AI
 		return new int[fs.field_size.row][fs.field_size.col];
 	}
 	
-	private int[][] findSoulDistanceTable(FieldState fs)
+	private int[][] findSoulDistanceTable(FieldState fs, RowCol[][] targetSoulTable)
 	{
 		FieldObject[][] field = fs.field;
 		int[][] table = makeFieldSizeIntTable(fs);
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
 		for (RowCol rc : fs.souls)
 		{
-			if (fs.field[rc.row][rc.col] != FieldObject.FLOOR) continue;
+			if (fs.field[rc.row][rc.col] != FieldObject.FLOOR)
+			{
+				if (Arrays.asList(
+						fs.field[rc.row][rc.col],
+						fs.field[rc.row + 1][rc.col],
+						fs.field[rc.row - 1][rc.col],
+						fs.field[rc.row][rc.col + 1],
+						fs.field[rc.row][rc.col - 1]
+						).contains(FieldObject.DANGEROUS_ZONE)) continue;
+			}
 			table[rc.row][rc.col] = 3;
+			targetSoulTable[rc.row][rc.col] = rc;
 			cur.addFirst(rc);
 		}
 		int[] add_rows = {1, 0, -1,  0};
@@ -453,6 +463,7 @@ class AI
 					if (table[addrc.row][addrc.col] != 0) continue;
 					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue;
 					table[addrc.row][addrc.col] = distance;
+					targetSoulTable[addrc.row][addrc.col] = targetSoulTable[rc.row][rc.col];
 					next.addFirst(addrc);
 				}
 			}
@@ -660,8 +671,10 @@ class AI
 		dropBackupedStack(field_backup_stack, n);
 	}
 	
-	private void computeKunoichiRoot(int[][] souls_table, Unit kunoichi, FieldState fs, int s)
+	private void computeKunoichiRoot(Unit kunoichi, FieldState fs, int s)
 	{
+		RowCol[][] targetSoulTable = new RowCol[fs.field_size.row][fs.field_size.col];
+		int[][] souls_table = findSoulDistanceTable(fs, targetSoulTable);
 		Map<Integer, List<String>> roots = new HashMap<>();
 		searchAllKunoichiRoot(souls_table, s, s, kunoichi.pos, "", roots);
 		int min = Integer.MAX_VALUE, min2 = Integer.MAX_VALUE;
@@ -701,6 +714,7 @@ class AI
 		}
 		int[] rocks = new int[rootList.size()];
 		int[] souls = new int[rootList.size()];
+		RowCol[] reachs = new RowCol[rootList.size()];
 		RowCol[][] souls_pos = new RowCol[rootList.size()][3];
 		FieldObject[][][] fields = new FieldObject[rootList.size()][][];
 		for (int i = 0; i < rootList.size(); i++)
@@ -726,6 +740,7 @@ class AI
 					fields[i][rc.row][rc.col] = FieldObject.ROCK;
 				}
 			}
+			reachs[i] = path.isEmpty() ? from : path.get(path.size() - 1);
 		}
 		int sel = 0;
 		for (int i = 1; i < rootList.size(); i++)
@@ -744,6 +759,7 @@ class AI
 		{
 			fs.souls.remove(souls_pos[sel][i]);
 		}
+		fs.souls.remove(targetSoulTable[reachs[sel].row][reachs[sel].col]);
 		kunoichi_commands[kunoichi.id] = rootList.get(sel);
 	}
 	
@@ -984,8 +1000,7 @@ class AI
 		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
 			kunoichi_commands[kunoichi.id] = "";
-			int[][] souls_table = findSoulDistanceTable(ts.my_state);
-			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 3);
+			computeKunoichiRoot(kunoichi, ts.my_state, 3);
 		}
 		
 		Unit dangerKunoichi = checkDanger(ts.my_state);
@@ -1024,8 +1039,7 @@ class AI
 				for (Unit kunoichi : ts.my_state.kunoichis)
 				{
 					kunoichi_commands[kunoichi.id] = "";
-					int[][] souls_table = findSoulDistanceTable(ts.my_state);
-					computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
+					computeKunoichiRoot(kunoichi, ts.my_state, 2);
 				}
 				
 				Unit temp_danger = checkDanger(ts.my_state);
@@ -1106,8 +1120,7 @@ class AI
 		{
 			backupField(ts.my_state);
 			backupSouls(ts.my_state);
-			int[][] souls_table = findSoulDistanceTable(ts.my_state);
-			computeKunoichiRoot(souls_table, kunoichi, ts.my_state, 2);
+			computeKunoichiRoot(kunoichi, ts.my_state, 2);
 		}
 		
 		backupField(ts.my_state); // save moved Ninjas 
