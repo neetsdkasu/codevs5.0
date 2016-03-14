@@ -30,6 +30,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -920,13 +921,13 @@ class AI
 		ts.my_state.field[pos.row][pos.col] = FieldObject.FLOOR;
 	}
 	
-	private int getKunoichiDistanceTable(FieldState fs, int[][] table)
+	private int getDistanceTable(FieldState fs, List<RowCol> targets, int[][] table)
 	{
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
-		for (Unit kunoichi : fs.kunoichis)
+		for (RowCol pos : targets)
 		{
-			cur.addFirst(kunoichi.pos);
-			table[kunoichi.pos.row][kunoichi.pos.col] = 1;
+			cur.addFirst(pos);
+			table[pos.row][pos.col] = 1;
 		}
 		int d = 1;
 		int[] add_row = { 1, 0, -1, 0};
@@ -1092,6 +1093,127 @@ class AI
 		return false;
 	}
 	
+	private List<Unit> getMovedDogs(FieldState fs, List<RowCol> targets)
+	{
+		int[][] distanceTable = makeFieldSizeIntTable(fs);
+		int max_distance = getDistanceTable(fs, targets, distanceTable);
+		
+		List<List<Unit>> temp = new ArrayList<>(Collections.nCopies(max_distance + 1, null)); // temp.get(0) == null
+		for (int i = 1; i < temp.size(); i++)
+		{
+			temp.set(i, new ArrayList<>());
+		}
+		
+		for (Unit dog : fs.dogs)
+		{
+			int k = distanceTable[dog.pos.row][dog.pos.col];
+			if (k > 0) // k == 0 is on other floor
+			{
+				temp.get(k).add(dog);
+			}
+		}
+		
+		List<Unit> dogs = new ArrayList<>(fs.dogs.length);
+		
+		int[] add_row = {-1, 0, 1, 0}, add_col = { 0, 1, 0, -1};
+		
+		for (int i = 1; i < temp.size(); i++)
+		{
+			List<Unit> list = temp.get(i);
+			list.sort( (a, b) -> a.id - b.id );
+			for (Unit dog : list)
+			{
+				RowCol pos = dog.pos;
+				int d = distanceTable[pos.row][pos.col];
+				if (d > 1) d--;
+				for (int j = 0; j < 4; j++)
+				{
+					if (d != distanceTable[pos.row + add_row[j]][pos.col + add_col[j]]) continue;
+					pos = pos.move(add_row[j], add_col[j]);
+					distanceTable[pos.row][pos.col] = 0;
+					break;
+				}
+				dogs.add(new Unit(dog.id, pos));
+			}
+		}
+		
+		return dogs;
+	}
+	
+	private boolean computeMakeMyDummy(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi, List<RowCol> clean_souls)
+	{
+		String[] tmp_cmds = Arrays.copyOf(kunoichi_commands, kunoichi_commands.length);
+		backupDogs(ts.my_state);
+		
+		copyField(clean_field, ts.my_state.field);
+		int[][] distanceTable = makeFieldSizeIntTable(ts.my_state);
+		int distance = getDistanceTable(ts.my_state, Arrays.asList(dangerKunoichi.pos), distanceTable);
+		
+		for (int k = 0; k < 2; k++)
+		{
+			for (int i = 1; i < distanceTable.length - 1; i++)
+			{
+				loop_label:
+				for (int j = 1; j < distanceTable[0].length - 1; j++)
+				{
+					if (distanceTable[i][j] != distance) continue;
+					RowCol pos = new RowCol(i, j);
+					copyField(clean_field, ts.my_state.field);
+					ts.my_state.souls = new ArrayList<>(clean_souls);
+					List<Unit> dogs = getMovedDogs(ts.my_state, Arrays.asList(pos));
+					ts.my_state.dogs = dogs.toArray(new Unit[0]);
+					for (Unit dog : dogs)
+					{
+						for (Unit kunoichi : ts.my_state.kunoichis)
+						{
+							if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
+							ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+							break;
+						}
+					}
+					for (Unit kunoichi : ts.my_state.kunoichis)
+					{
+						kunoichi_commands[kunoichi.id] = "";
+						computeKunoichiRoot(kunoichi, ts.my_state, 2);
+					}
+					Unit danger = checkDanger(ts.my_state);
+					if (danger != null) continue;
+					
+					for (int yy = 0; yy < ts.my_state.field_size.row; yy++)
+					{
+						for (int xx = 0; xx < ts.my_state.field_size.col; xx++)
+						{
+							if (ts.my_state.field[yy][xx] == FieldObject.DOG)
+							{
+								ts.my_state.field[yy][xx] = FieldObject.FLOOR;
+							}
+						}
+					}
+					ts.my_state.dogs = dogs_backup_stack.peekFirst();
+					dogs = getMovedDogs(ts.my_state, Arrays.asList(pos));
+					for (Unit kunoichi : ts.my_state.kunoichis)
+					{
+						List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+						RowCol to = path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+						for (Unit dog : dogs)
+						{
+							if (to.equals(dog.pos)) continue loop_label;
+						}
+					}
+					
+					ninjutsu_command.clear();
+					ninjutsu_command.type = NinjutsuType.MAKE_MY_DUMMY;
+					ninjutsu_command.pos = pos;
+					return true;
+				}
+			}
+			distance--;
+		}
+		restoreDogs(ts.my_state);
+		kunoichi_commands = tmp_cmds;
+		return false;
+	}
+	
 	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls, Unit dangerKunoichi)
 	{
 		if (dangerKunoichi == null) return false;
@@ -1110,6 +1232,7 @@ class AI
 				if (computeEmergencyThunder(ts, clean_field, dangerKunoichi, clean_souls)) break loop_label;
 				break;
 			case MAKE_MY_DUMMY:
+				if (computeMakeMyDummy(ts, clean_field, dangerKunoichi, clean_souls)) break loop_label;
 				break;
 			case TURN_CUTTING:
 				computeTurnCut(ts, clean_field, dangerKunoichi, clean_souls);
