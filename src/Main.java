@@ -431,7 +431,7 @@ class AI
 		return new int[fs.field_size.row][fs.field_size.col];
 	}
 	
-	private int[][] findSoulDistanceTable(FieldState fs, RowCol[][] targetSoulTable)
+	private int[][] findSoulDistanceTable(FieldState fs, RowCol[][] targetSoulTable, Unit kunoichi)
 	{
 		FieldObject[][] field = fs.field;
 		int[][] table = makeFieldSizeIntTable(fs);
@@ -489,13 +489,7 @@ class AI
 					continue;
 				}
 				if (table[i][j] != 0 || fs.field[i][j] != FieldObject.FLOOR) continue;
-				int max = 0;
-				RowCol rc = new RowCol(i, j);
-				for (Unit kunoichi : fs.kunoichis)
-				{
-					max = Math.max(max, rc.distanceTo(kunoichi.pos));
-				}
-				table[i][j] = 1000 - max;
+				table[i][j] = Integer.MAX_VALUE - kunoichi.pos.distanceTo(new RowCol(i, j));
 			}
 		}
 		return table;
@@ -708,7 +702,7 @@ class AI
 	private void computeKunoichiRoot(Unit kunoichi, FieldState fs, int s)
 	{
 		RowCol[][] targetSoulTable = new RowCol[fs.field_size.row][fs.field_size.col];
-		int[][] souls_table = findSoulDistanceTable(fs, targetSoulTable);
+		int[][] souls_table = findSoulDistanceTable(fs, targetSoulTable, kunoichi);
 		Map<Integer, List<String>> roots = new HashMap<>();
 		searchAllKunoichiRoot(souls_table, s, s, kunoichi.pos, "", roots);
 		int min = Integer.MAX_VALUE, min2 = Integer.MAX_VALUE;
