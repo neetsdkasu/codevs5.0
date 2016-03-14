@@ -477,9 +477,14 @@ class AI
 		{
 			for (int j = 0; j < fs.field_size.col; j++)
 			{
-				if (fs.field[i][j] == FieldObject.DOG || fs.field[i][j] == FieldObject.DANGEROUS_ZONE)
+				if (fs.field[i][j] == FieldObject.DOG)
 				{
 					table[i][j] = 1;
+					continue;
+				}
+				if (fs.field[i][j] == FieldObject.DANGEROUS_ZONE)
+				{
+					table[i][j] = 2;
 					continue;
 				}
 				if (table[i][j] != 0 || fs.field[i][j] != FieldObject.FLOOR) continue;
@@ -528,6 +533,9 @@ class AI
 	
 	private void searchAllKunoichiRoot(int[][] souls_table, int s, int n, RowCol pos, String root, Map<Integer, List<String>> roots)
 	{
+		RowCol moveToRock = null;
+		int beforeSouldist = 0;
+		
 		if (s != n && souls_table[pos.row][pos.col] == 0)
 		{
 			boolean flag = false;
@@ -541,7 +549,7 @@ class AI
 				case 'L': p = 3; if (pos.col == 0) return; break;
 			}
 			RowCol xx, yy;
-			xx = pos.move(add_row[p], add_col[p]);
+			moveToRock = xx = pos.move(add_row[p], add_col[p]);
 			if (souls_table[xx.row][xx.col] < 3) return;
 			xx = pos.move(add_row[(p + 1) & 3], add_col[(p + 1) & 3]);
 			yy =  xx.move(add_row[(p + 2) & 3], add_col[(p + 2) & 3]);
@@ -555,6 +563,23 @@ class AI
 				 && yy.col >= 0 && yy.col < souls_table[0].length
 				 && souls_table[xx.row][xx.col] > 0 && souls_table[yy.row][yy.col] > 0;
 			if (flag == false) return;
+			beforeSouldist = souls_table[moveToRock.row][moveToRock.col];
+			for (int i = 0; i < 4; i++)
+			{
+				xx = pos.move(add_row[i], add_col[i]);
+				int xi = souls_table[xx.row][xx.col];
+				if (xi == 1)
+				{
+					souls_table[pos.row][pos.col] = 2;
+					break;
+				}
+				if (xi < 3) continue;
+				if (souls_table[pos.row][pos.col] == 0 || xi + 1 < souls_table[pos.row][pos.col])
+				{
+					souls_table[pos.row][pos.col] = xi + 1;
+				}
+			}
+			souls_table[moveToRock.row][moveToRock.col] = 0;
 		}
 		Integer key = Integer.valueOf(souls_table[pos.row][pos.col]);
 		if (roots.containsKey(key) == false)
@@ -562,11 +587,16 @@ class AI
 			roots.put(key, new ArrayList<>());
 		}
 		roots.get(key).add(root);
-		if (n == 0) return;
-		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(1, 0),  root + "D", roots);
-		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(-1, 0), root + "U", roots);
-		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, 1),  root + "R", roots);
-		searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, -1), root + "L", roots);
+		if (n > 0)
+		{
+			searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(1, 0),  root + "D", roots);
+			searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(-1, 0), root + "U", roots);
+			searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, 1),  root + "R", roots);
+			searchAllKunoichiRoot(souls_table, s, n - 1, pos.move(0, -1), root + "L", roots);
+		}
+		if (moveToRock == null) return;
+		souls_table[moveToRock.row][moveToRock.col] = beforeSouldist;
+		souls_table[pos.row][pos.col] = 0;
 	}
 	
 	private List<RowCol> parseRoot(RowCol from, String root)
