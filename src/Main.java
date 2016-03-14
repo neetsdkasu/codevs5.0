@@ -761,11 +761,11 @@ class AI
 				if (fields[i][rc.row][rc.col] == FieldObject.ROCK)
 				{
 					rocks[i]++;
-					RowCol df = from.subtractFrom(rc);
+					RowCol df = from.subtractFrom(rc), tc;
 					fields[i][rc.row][rc.col] = FieldObject.FLOOR;
 					from = rc;
-					df = rc.move(df.row, df.col);
-					fields[i][rc.row][rc.col] = FieldObject.ROCK;
+					tc = rc.move(df.row, df.col);
+					fields[i][tc.row][tc.col] = FieldObject.ROCK;
 				}
 			}
 			reachs[i] = path.isEmpty() ? from : path.get(path.size() - 1);
