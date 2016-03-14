@@ -370,6 +370,8 @@ class AI
 	private final Deque<Unit[]> dogs_backup_stack = new ArrayDeque<>();
 	private final Deque<List<RowCol>> souls_backup_stack = new ArrayDeque<>();
 	
+	private int recur_count = 0;
+	
 	private NinjutsuType[] emergencies = {
 		NinjutsuType.SPEED_UP,
 		NinjutsuType.THUNDERSTROKE_MY_FIELD,
@@ -380,6 +382,7 @@ class AI
 	
 	private void initCompute(TurnState ts)
 	{
+		recur_count = 0;
 		ninjutsu_command.clear();
 		if (kunoichi_commands == null)
 		{
@@ -1148,6 +1151,9 @@ class AI
 	
 	private void computeInner(TurnState ts)
 	{
+		recur_count++;
+		if (recur_count > 2) return;
+		
 		/*
 		int[][] rival_kunoichiDistanceTable = makeFieldSizeIntTable(ts.rival_state);
 		getKunoichiDistanceTable(ts.rival_state, rival_kunoichiDistanceTable);
