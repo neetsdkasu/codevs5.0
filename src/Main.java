@@ -504,7 +504,7 @@ class AI
 			if (fs.field[dog.pos.row][dog.pos.col] != FieldObject.FLOOR) continue;
 			for (Unit kunoichi : fs.kunoichis)
 			{
-				if (kunoichi.pos.distanceTo(dog.pos) < 8)
+				if (kunoichi.pos.distanceTo(dog.pos) < 6)
 				{
 					fs.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
 					continue outerloop;
