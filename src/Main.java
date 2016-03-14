@@ -1115,7 +1115,7 @@ class AI
 		
 		List<Unit> dogs = new ArrayList<>(fs.dogs.length);
 		
-		int[] add_row = {-1, 0, 1, 0}, add_col = { 0, 1, 0, -1};
+		int[] add_row = {-1, 0, 0, 1}, add_col = { 0, -1, 1, 0};
 		
 		for (int i = 1; i < temp.size(); i++)
 		{
