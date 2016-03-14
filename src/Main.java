@@ -998,11 +998,13 @@ class AI
 		copyField(clean_field, ts.my_state.field);
 		ts.my_state.souls = new ArrayList<>(clean_souls);
 		ts.my_state.dogs = dogs.toArray(new Unit[0]);
-		for (int i = 0; i < kunoichi_commands.length; i++)
+		
+		mappingDogs(ts.my_state);
+		for (Unit kunoichi : ts.my_state.kunoichis)
 		{
-			kunoichi_commands[i] = "";
+			kunoichi_commands[kunoichi.id] = "";
+			computeKunoichiRoot(kunoichi, ts.my_state, 2);
 		}
-		computeInner(ts);
 	}
 	
 	private Unit checkDanger(FieldState fs)
