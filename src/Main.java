@@ -316,6 +316,7 @@ class Unit
 	public final int id;
 	public final RowCol pos;
 	
+	public Unit(int id, RowCol pos) { this.id = id; this.pos = pos; }
 	public Unit(int[] values)
 	{
 		id = values[0];
