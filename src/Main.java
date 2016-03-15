@@ -603,6 +603,19 @@ class FieldState
 		for (int i = 0; i < 2; i++) sum += kunoichis[i].pos.distanceTo(fs.kunoichis[i].pos);
 		return sum;
 	}
+	
+	public int sumDistSouls()
+	{
+		int sum = 0;
+		for (Unit kunoichi: kunoichis)
+		{
+			for (RowCol soul : souls)
+			{
+				sum += soul.distanceTo(kunoichi.pos);
+			}
+		}
+		return sum;
+	}
 }
 
 class TurnState
@@ -742,7 +755,8 @@ class AI
 		Ninjutsu empty = new Ninjutsu();
 		TurnState sel_ts = ts;
 		List<List<RowCol>> sel_move = Collections.nCopies(2, Collections.singletonList(RowCol.STAY));
-		int sel_sum = 0;
+		int sel_sum_soul = ts.my_state.sumDistSouls();
+		int sel_sum_kuno = 0;
 		
 		outer_loop_label:
 		for (List<RowCol> my_move0 : movements) for (List<RowCol> my_move1 : movements)
@@ -767,12 +781,13 @@ class AI
 				{
 					if (next_ts.my_state.ninja_enegy >= ts.my_state.ninja_enegy)
 					{
-						int sum = ts.my_state.sumDistKunoichi(next_ts.my_state);
-						if (sum > sel_sum)
+						int sum_soul = next_ts.my_state.sumDistSouls();
+						int sum_kuno = ts.my_state.sumDistKunoichi(next_ts.my_state);
+						if (sum_soul <= sel_sum_soul)
 						{
 							sel_ts = next_ts;
 							sel_move = my_move;
-							sel_sum = sum;
+							sel_sum_soul = sum_soul;
 						}
 					}
 				}
