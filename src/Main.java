@@ -1267,6 +1267,68 @@ class AI
 		return false;
 	}
 	
+	private void findAllKunoichiRoots(FieldObject[][] field, int n, RowCol pos, String root, List<String> roots)
+	{
+		if (n == 0) return;
+		int[] add_row = {-1, 0, 1, 0}, add_col = {0, -1, 0, 1};
+		String[] cmds = {"U", "L", "D", "R"};
+		for (int i = 0; i < 4; i++)
+		{
+			RowCol rc = pos.move(add_row[i], add_col[i]);
+			if (rc.row < 1 || rc.col < 1
+				|| rc.row >= field.length - 1
+				|| rc.col >= field[0].length - 1) continue;
+			String tmprt = root + cmds[i];
+			boolean reg = true;
+			if (Arrays.asList(
+					field[rc.row][rc.col],
+					field[rc.row + 1][rc.col],
+					field[rc.row - 1][rc.col],
+					field[rc.row][rc.col + 1],
+					field[rc.row][rc.col - 1]).contains(FieldObject.DOG)
+				)
+			{
+				reg = false;
+			}
+			if (field[rc.row][rc.col] == FieldObject.ROCK)
+			{
+				RowCol over = rc.move(add_row[i], add_col[i]);
+				if (field[over.row][over.col] != FieldObject.FLOOR) continue;
+				field[over.row][over.col] = FieldObject.ROCK;
+				field[rc.row][rc.col] = FieldObject.FLOOR;
+				findAllKunoichiRoots(field, n - 1, rc, tmprt, roots);
+				field[over.row][over.col] = FieldObject.FLOOR;
+				field[rc.row][rc.col] = FieldObject.ROCK;
+			}
+			else
+			{
+				findAllKunoichiRoots(field, n - 1, rc, tmprt, roots);
+			}
+			if (reg) roots.add(tmprt);
+		}
+	}
+	
+	private boolean computeAllKunoichiRootEscape(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls, Unit dangerKunoichi)
+	{
+		FieldObject[][] field = copyFieldOf(clean_field);
+		for (Unit dog : ts.my_state.dogs)
+		{
+			field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+		}
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			if (kunoichi.equals(dangerKunoichi) == false)
+			{
+				field[kunoichi.pos.row][kunoichi.pos.col] = FieldObject.DANGEROUS_ZONE;
+			}
+		}
+		List<String> roots = new ArrayList<>();
+		findAllKunoichiRoots(field, 2, dangerKunoichi.pos, "", roots);
+		if (roots.isEmpty()) return false;
+		kunoichi_commands[dangerKunoichi.id] = roots.get(0);
+		return true;
+	}
+	
 	private boolean computeEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls, Unit dangerKunoichi)
 	{
 		if (dangerKunoichi == null) return false;
@@ -1295,9 +1357,12 @@ class AI
 		
 		if (ninjutsu_command.exists()) return true;
 		
-		if (ts.my_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.MAKE_MY_DUMMY)) return false;
+		if (ts.my_state.ninja_enegy >= getNinjutsuCost(ts, NinjutsuType.MAKE_MY_DUMMY))
+		{
+			if (computeMakeMyDummy(ts, clean_field, dangerKunoichi, clean_souls, true)) return true;
+		}
 		
-		return computeMakeMyDummy(ts, clean_field, dangerKunoichi, clean_souls, true);
+		return computeAllKunoichiRootEscape(ts, clean_field, clean_souls, dangerKunoichi);
 	}
 	
 	private boolean checkParseDead(TurnState ts)
