@@ -1,5 +1,5 @@
 @setlocal
-@set MY_JAR=Leonardone_AI.jar
+@set MY_JAR=ThinkAllThings.jar
 @set MY_MAIN_CLASS=Main
 @set MY_BASE_DIR=%~dp0
 @set MY_CLASS_DIR=classes
