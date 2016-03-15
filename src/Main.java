@@ -1591,3 +1591,63 @@ class AI
 	}
 }
 
+class Debug
+{
+	public static void println(Object o) { System.err.println(o); }
+	
+	public static void printTitle(String title, String def)
+	{
+		if (title == null) title = def;
+		System.err.println(title + " ======================= " + title);
+	}
+	
+	public static void printField(TurnState ts)
+	{
+		printField("my field", ts.my_state);
+		printField("rival field", ts.rival_state);
+	}
+	public static void printField(FieldState fs) { printField(fs.field); }
+	public static void printField(String title, FieldState fs) { printField(title, fs.field); }
+	public static void printField(FieldObject[][] field) { printField(null, field); }
+	public static void printField(String title, FieldObject[][] field)
+	{
+		printTitle(title, "printField");
+		for (int i = 0; i < field.length; i++)
+		{
+			for (int j = 0; j < field[0].length; j++)
+			{
+				String ch = " ";
+				switch (field[i][j])
+				{
+				case WALL: ch = "#"; break;
+				case ROCK: ch = "O"; break;
+				case DOG:  ch = "d"; break;
+				case DANGEROUS_ZONE: ch = "X"; break;
+				}
+				System.err.print(" " + ch);
+			}
+			System.err.println();
+		}
+	}
+	
+	public static void printDistanceTable(int[][] distanceTable) { printDistanceTable(null, distanceTable); }
+	public static void printDistanceTable(String title, int[][] distanceTable)
+	{
+		printTitle(title, "print DistanceTable");
+		for (int i = 0; i < distanceTable.length; i++)
+		{
+			for (int j = 0; j < distanceTable[0].length; j++)
+			{
+				if (distanceTable[i][j] >= 100)
+				{
+					System.err.print(" --");
+				}
+				else
+				{
+					System.err.printf(" %2d", distanceTable[i][j]);
+				}
+			}
+			System.err.println();
+		}
+	}
+}
