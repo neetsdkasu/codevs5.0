@@ -1398,7 +1398,7 @@ class AI
 				RowCol over = pos.move(add_rows[i], add_cols[i]);
 				if (ts.rival_state.field[over.row][over.col] != FieldObject.FLOOR) continue;
 				int di = distanceTable[over.row][over.col];
-				if (di == 0 || di > sel) continue;
+				if (di == 0 || di > sel || di >= dp) continue;
 				sel = di;
 				atk_pos = pos;
 			}
