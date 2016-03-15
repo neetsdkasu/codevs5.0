@@ -1650,6 +1650,39 @@ class AI
 		restoreField(ts.my_state);
 		restoreSouls(ts.my_state);
 		recur_count--;
+		if (recur_count > 0) return;
+		int[] add_rows = {-1, 0, 1, 0}, add_cols = {0, -1, 0, 1};
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			String ss = kunoichi_commands[kunoichi.id];
+			if (ss.length() < 2) continue;
+			if ("NN".equals(ss.substring(ss.length() - 2)) == false) continue;
+			List<RowCol> path = parseRoot(kunoichi.pos, ss);
+			RowCol to_pos = path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+			for (int i = 0; i < 4; i++)
+			{
+				RowCol pos = to_pos.move(add_rows[i], add_cols[i]);
+				if (ts.my_state.souls.contains(pos) == false) continue;
+				String cmd = ss.length() == 2 ? "" : ss.substring(0, 1);
+				if (add_rows[i] > 0)
+				{
+					cmd += "DU";
+				}
+				else if (add_rows[i] < 0)
+				{
+					cmd += "UD";
+				}
+				else if (add_cols[i] > 0)
+				{
+					cmd += "RL";
+				}
+				else
+				{
+					cmd += "LR";
+				}
+				kunoichi_commands[kunoichi.id] = cmd;
+			}
+		}
 	}
 }
 
