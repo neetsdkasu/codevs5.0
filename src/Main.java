@@ -783,11 +783,12 @@ class AI
 					{
 						int sum_soul = next_ts.my_state.sumDistSouls();
 						int sum_kuno = ts.my_state.sumDistKunoichi(next_ts.my_state);
-						if (sum_soul <= sel_sum_soul)
+						if (sum_kuno * 100 / sum_soul >= sel_sum_kuno)
 						{
 							sel_ts = next_ts;
 							sel_move = my_move;
-							sel_sum_soul = sum_soul;
+							//sel_sum_soul = sum_soul;
+							sel_sum_kuno = sum_kuno * 100 / sum_soul;
 						}
 					}
 				}
