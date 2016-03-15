@@ -709,6 +709,12 @@ class AI
 		dropBackupedStack(field_backup_stack, n);
 	}
 	
+	private RowCol getMovedKunoichiPos(Unit kunoichi)
+	{
+		List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+		return path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+	}
+	
 	private void computeKunoichiRoot(Unit kunoichi, FieldState fs, int s)
 	{
 		RowCol[][] targetSoulTable = new RowCol[fs.field_size.row][fs.field_size.col];
@@ -756,6 +762,7 @@ class AI
 		RowCol[] reachs = new RowCol[rootList.size()];
 		RowCol[][] souls_pos = new RowCol[rootList.size()][3];
 		FieldObject[][][] fields = new FieldObject[rootList.size()][][];
+		RowCol other_pos = getMovedKunoichiPos(fs.kunoichis[1 - kunoichi.id]);
 		for (int i = 0; i < rootList.size(); i++)
 		{
 			String root = rootList.get(i);
@@ -774,11 +781,19 @@ class AI
 					rocks[i]++;
 					RowCol df = from.subtractFrom(rc), tc;
 					fields[i][rc.row][rc.col] = FieldObject.FLOOR;
+					if (rc.equals(other_pos))
+					{
+						ng_flag[i] = true;
+					}
 					from = rc;
 					tc = rc.move(df.row, df.col);
 					if (tc.row < 0 || tc.col < 0
 						|| tc.row >= fs.field_size.row
 						|| tc.col >= fs.field_size.col)
+					{
+						ng_flag[i] = true;
+					}
+					else if (tc.equals(other_pos))
 					{
 						ng_flag[i] = true;
 					}
