@@ -1762,10 +1762,22 @@ class AI
 			if ("NN".equals(ss.substring(ss.length() - 2)) == false) continue;
 			List<RowCol> path = parseRoot(kunoichi.pos, ss);
 			RowCol to_pos = path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+			loop_label:
 			for (int i = 0; i < 4; i++)
 			{
 				RowCol pos = to_pos.move(add_rows[i], add_cols[i]);
 				if (ts.my_state.souls.contains(pos) == false) continue;
+				switch (ts.my_state.field[pos.row][pos.col])
+				{
+				case WALL:
+					continue loop_label;
+				case ROCK:
+					RowCol over = pos.move(add_rows[i], add_cols[i]);
+					if (ts.my_state.field[over.row][over.col] != FieldObject.FLOOR) continue loop_label;
+					for (Unit dog : ts.my_state.dogs) if (dog.pos.equals(over)) continue loop_label;
+					for (Unit t_kunoichi : ts.my_state.kunoichis) if (t_kunoichi.pos.equals(over)) continue loop_label;
+					break;
+				}
 				String cmd = ss.length() == 2 ? "" : ss.substring(0, 1);
 				if (add_rows[i] > 0)
 				{
