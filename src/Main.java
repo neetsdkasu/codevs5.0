@@ -1461,6 +1461,15 @@ class AI
 		int[] counts = new int[ts.rival_state.kunoichis.length];
 		RowCol[] atk_pos = new RowCol[counts.length]; 
 		
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			field[kunoichi.pos.row][kunoichi.pos.col] = FieldObject.ROCK;
+		}
+		for (RowCol soul : ts.rival_state.souls)
+		{
+			field[soul.row][soul.col] = FieldObject.ROCK;
+		}
+		
 		int[] add_rows = { -1, 0, 1, 0}, add_cols = {0, -1, 0, 1};
 		
 		for (Unit kunoichi : ts.rival_state.kunoichis)
@@ -1477,7 +1486,7 @@ class AI
 					{
 						break;
 					}
-					if (ts.rival_state.field[pos.row][pos.col] != FieldObject.FLOOR) continue;
+					if (field[pos.row][pos.col] != FieldObject.FLOOR) continue;
 					counts[kunoichi.id]++;
 					atk_pos[kunoichi.id] = pos;
 				}
@@ -1503,6 +1512,15 @@ class AI
 		backupField(ts.rival_state);
 		
 		mappingDogs(ts.rival_state);
+		
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			ts.rival_state.field[kunoichi.pos.row][kunoichi.pos.col] = FieldObject.ROCK;
+		}
+		for (RowCol soul : ts.rival_state.souls)
+		{
+			ts.rival_state.field[soul.row][soul.col] = FieldObject.ROCK;
+		}
 		
 		int[] counts = new int[ts.rival_state.kunoichis.length];
 		RowCol[] atk_pos = new RowCol[counts.length];
