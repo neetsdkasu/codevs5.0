@@ -1609,7 +1609,7 @@ class AI
 		
 		if (computeEmergencies(ts, clean_field, clean_souls, checkDanger(ts.my_state))) return true;
 		
-		// if (checkSemiEmergencies(ts, clean_field, clean_souls)) return true;
+		if (checkSemiEmergencies(ts, clean_field, clean_souls)) return true;
 		
 		// attack ninjutsu
 		computeAttacks(ts);
