@@ -456,6 +456,7 @@ class AI
 						fs.field[rc.row][rc.col + 1],
 						fs.field[rc.row][rc.col - 1]
 						).contains(FieldObject.DANGEROUS_ZONE)) continue;
+				if (fs.field[rc.row][rc.col] == FieldObject.ROCK) continue;
 			}
 			table[rc.row][rc.col] = 3;
 			targetSoulTable[rc.row][rc.col] = rc;
@@ -498,7 +499,7 @@ class AI
 					continue;
 				}
 				if (table[i][j] != 0 || fs.field[i][j] != FieldObject.FLOOR) continue;
-				table[i][j] = Integer.MAX_VALUE - kunoichi.pos.distanceTo(new RowCol(i, j));
+				table[i][j] = (Integer.MAX_VALUE - 1) - kunoichi.pos.distanceTo(new RowCol(i, j));
 			}
 		}
 		return table;
@@ -749,6 +750,7 @@ class AI
 			}
 			rootList.set(i, tmp_root);
 		}
+		boolean[] ng_flag = new boolean[rootList.size()];
 		int[] rocks = new int[rootList.size()];
 		int[] souls = new int[rootList.size()];
 		RowCol[] reachs = new RowCol[rootList.size()];
@@ -774,7 +776,25 @@ class AI
 					fields[i][rc.row][rc.col] = FieldObject.FLOOR;
 					from = rc;
 					tc = rc.move(df.row, df.col);
-					fields[i][tc.row][tc.col] = FieldObject.ROCK;
+					if (tc.row < 0 || tc.col < 0
+						|| tc.row >= fs.field_size.row
+						|| tc.col >= fs.field_size.col)
+					{
+						ng_flag[i] = true;
+					}
+					else
+					{
+						switch (fields[i][tc.row][tc.col])
+						{
+						case FLOOR:
+						case DANGEROUS_ZONE:
+							fields[i][tc.row][tc.col] = FieldObject.ROCK;
+							break;
+						default:
+							ng_flag[i] = true;
+							break;
+						}
+					}
 				}
 			}
 			reachs[i] = path.isEmpty() ? from : path.get(path.size() - 1);
@@ -782,7 +802,11 @@ class AI
 		int sel = 0;
 		for (int i = 1; i < rootList.size(); i++)
 		{
-			if (rocks[i] < rocks[sel])
+			if (ng_flag[sel])
+			{
+				sel = i;
+			}
+			else if (rocks[i] < rocks[sel])
 			{
 				sel = i;
 			}
@@ -790,6 +814,11 @@ class AI
 			{
 				sel = i;
 			}
+		}
+		if (ng_flag[sel])
+		{
+			kunoichi_commands[kunoichi.id] = "NNNNNNNN".substring(0, s);
+			return;
 		}
 		fs.field = fields[sel];
 		for (int i = 0; i < souls[sel]; i++)
@@ -1251,9 +1280,29 @@ class AI
 		return ninjutsu_command.exists();
 	}
 	
+	private boolean checkParseDead(TurnState ts)
+	{
+		if (ninjutsu_command.type == NinjutsuType.MAKE_MY_DUMMY) return false;
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+			RowCol to = path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+			for (Unit dog : ts.my_state.dogs)
+			{
+				if (dog.pos.distanceTo(to) < 2)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
 	private boolean checkSemiEmergencies(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		if (ts.rival_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.DROP_ROCK_RIVAL_FIELD)) return false;
+		String[] tmp_cmds = Arrays.copyOf(kunoichi_commands, kunoichi_commands.length);
+		Ninjutsu tmp_ninj = new Ninjutsu(); tmp_ninj.copyFrom(ninjutsu_command);
 		copyField(clean_field, ts.my_state.field);
 		mappingDogs(ts.my_state);
 		for (Unit kunoichi : ts.my_state.kunoichis)
@@ -1276,6 +1325,12 @@ class AI
 					ts.my_state.field[pos1.row][pos1.col] = FieldObject.VIRTUAL_ROCK;
 					ts.my_state.souls = clean_souls;
 					computeInner(ts);
+					if (checkParseDead(ts))
+					{
+						kunoichi_commands = tmp_cmds;
+						ninjutsu_command.copyFrom(tmp_ninj);
+						return false;
+					}
 					return true;
 				case ROCK:
 					if (ninjutsu_command.type != null) return true;
@@ -1285,6 +1340,12 @@ class AI
 					ts.my_state.field[pos2.row][pos2.col] = FieldObject.VIRTUAL_ROCK;
 					ts.my_state.souls = clean_souls;
 					computeInner(ts);
+					if (checkParseDead(ts))
+					{
+						kunoichi_commands = tmp_cmds;
+						ninjutsu_command.copyFrom(tmp_ninj);
+						return false;
+					}
 					return true;
 				}
 			}
@@ -1588,6 +1649,7 @@ class AI
 		
 		restoreField(ts.my_state);
 		restoreSouls(ts.my_state);
+		recur_count--;
 	}
 }
 
