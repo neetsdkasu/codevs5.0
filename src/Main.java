@@ -381,6 +381,12 @@ class AI
 		NinjutsuType.TURN_CUTTING
 	};
 	
+	private NinjutsuType[] attacks = {
+		NinjutsuType.DROP_ROCK_RIVAL_FIELD,
+		NinjutsuType.THUNDERSTROKE_RIVAL_FIELD,
+		NinjutsuType.MAKE_RIVAL_DUMMY,
+		NinjutsuType.TURN_CUTTING
+	};
 	
 	private void initCompute(TurnState ts)
 	{
@@ -392,6 +398,8 @@ class AI
 			old_kunoitchi_commands = new String[kunoichi_commands.length];
 			
 			Arrays.sort(emergencies, (a, b) -> ts.ninjutsu_costs[a.ordinal()] - ts.ninjutsu_costs[b.ordinal()] );
+			Arrays.sort(attacks, (a, b) -> ts.ninjutsu_costs[a.ordinal()] - ts.ninjutsu_costs[b.ordinal()] );
+			
 		}
 		for (int i = 0; i < kunoichi_commands.length; i++)
 		{
@@ -1284,6 +1292,249 @@ class AI
 		return false;
 	}
 	
+	private boolean computeAttackThunder(TurnState ts)
+	{
+		List<RowCol> list = new ArrayList<>();
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			list.add(kunoichi.pos);
+		}
+		int[][] distanceTable = makeFieldSizeIntTable(ts.rival_state);
+		getDistanceTable(ts.rival_state, list, distanceTable);
+		
+		int[] add_rows = { -1, 0, 1, 0}, add_cols = {0, -1, 0, 1};
+		
+		int sel = Integer.MAX_VALUE;
+		RowCol atk_pos = null;
+		
+		for (Unit dog : ts.rival_state.dogs)
+		{
+			int dp = distanceTable[dog.pos.row][dog.pos.col];
+			for (int i = 0; i < 4; i++)
+			{
+				RowCol pos = dog.pos.move(add_rows[i], add_cols[i]);
+				if (ts.rival_state.field[pos.row][pos.col] != FieldObject.ROCK) continue;
+				RowCol over = pos.move(add_rows[i], add_cols[i]);
+				if (ts.rival_state.field[over.row][over.col] != FieldObject.FLOOR) continue;
+				int di = distanceTable[over.row][over.col];
+				if (di == 0 || di > sel) continue;
+				sel = di;
+				atk_pos = pos;
+			}
+		}
+		
+		if (atk_pos == null) return false;
+		if (sel != 5) return false;
+		
+		ninjutsu_command.clear();
+		ninjutsu_command.type = NinjutsuType.THUNDERSTROKE_RIVAL_FIELD;
+		ninjutsu_command.pos = atk_pos;
+		
+		return true;
+	}
+	
+	private boolean computeAttackTurnCutting(TurnState ts)
+	{
+		int[] counts = new int[ts.rival_state.kunoichis.length];
+		int max_count = 0;
+		
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			for (Unit dog : ts.rival_state.dogs)
+			{
+				RowCol df = kunoichi.pos.subtractFrom(dog.pos);
+				if (Math.max(Math.abs(df.row), Math.abs(df.col)) > 1) continue;
+				counts[kunoichi.id]++;
+			}
+			max_count = Math.max(max_count, counts[kunoichi.id]);
+		}
+		
+		if (max_count < 3) return false;
+		
+		ninjutsu_command.clear();
+		ninjutsu_command.type = NinjutsuType.TURN_CUTTING;
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			if (max_count == counts[kunoichi.id])
+			{
+				ninjutsu_command.kunoichi_id = kunoichi.id;
+				break;
+			}
+		}
+		return true;
+	}
+	
+	private FieldObject[][] getMappingAllDogs(FieldState fs)
+	{
+		FieldObject[][] field = copyFieldOf(fs.field);
+		for (Unit dog : fs.dogs)
+		{
+			field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+		}
+		return field;
+	}
+	
+	private boolean computeChanceDropRock(TurnState ts)
+	{
+		FieldObject[][] field = getMappingAllDogs(ts.rival_state);
+		int[] counts = new int[ts.rival_state.kunoichis.length];
+		RowCol[] atk_pos = new RowCol[counts.length]; 
+		
+		int[] add_rows = { -1, 0, 1, 0}, add_cols = {0, -1, 0, 1};
+		
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				RowCol pos = kunoichi.pos;
+				for (int j = 0; j < 2; j++)
+				{
+					pos = pos.move(add_rows[i], add_cols[i]);
+					if (pos.row < 0 || pos.col < 0
+						|| pos.row >= ts.rival_state.field_size.row
+						|| pos.col >= ts.rival_state.field_size.col)
+					{
+						break;
+					}
+					if (ts.rival_state.field[pos.row][pos.col] != FieldObject.FLOOR) continue;
+					counts[kunoichi.id]++;
+					atk_pos[kunoichi.id] = pos;
+				}
+			}
+		}
+		
+		for (int i = 0; i < counts.length; i++)
+		{
+			if (counts[i] == 1)
+			{
+				ninjutsu_command.clear();
+				ninjutsu_command.type = NinjutsuType.DROP_ROCK_RIVAL_FIELD;
+				ninjutsu_command.pos = atk_pos[i];
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	private boolean computeAttackDropRock(TurnState ts)
+	{
+		backupField(ts.rival_state);
+		
+		mappingDogs(ts.rival_state);
+		
+		int[] counts = new int[ts.rival_state.kunoichis.length];
+		RowCol[] atk_pos = new RowCol[counts.length];
+		int min_count = Integer.MAX_VALUE;
+		int min_id = 0;
+		
+		for (Unit kunoichi : ts.rival_state.kunoichis)
+		{
+			for (int i = -2; i <= 2; i++)
+			{
+				for (int j = -2; j <= 2; j++)
+				{
+					RowCol pos = kunoichi.pos.move(i, j);
+					if (pos.row < 0 || pos.col < 0
+						|| pos.row >= ts.rival_state.field_size.row
+						|| pos.col >= ts.rival_state.field_size.col)
+					{
+						continue;
+					}
+					if (pos.equals(kunoichi.pos)) continue;
+					if (pos.distanceTo(kunoichi.pos) > 2) continue;
+					if (ts.rival_state.field[pos.row][pos.col] != FieldObject.FLOOR) continue;
+					counts[kunoichi.id]++;
+					atk_pos[kunoichi.id] = pos;
+				}
+			}
+			if (counts[kunoichi.id] < min_count)
+			{
+				min_count = counts[kunoichi.id];
+				min_id = kunoichi.id;
+			}
+			
+		}
+		
+		switch (min_count)
+		{
+		case 0:
+			List<RowCol> sels = new ArrayList<>();
+			
+			for (int i = -2; i <= 2; i++)
+			{
+				for (int j = -2; j <= 2; j++)
+				{
+					RowCol pos = ts.rival_state.kunoichis[min_id].pos.move(i, j);
+					if (pos.row < 0 || pos.col < 0
+						|| pos.row >= ts.rival_state.field_size.row
+						|| pos.col >= ts.rival_state.field_size.col)
+					{
+						continue;
+					}
+					switch (pos.distanceTo(ts.rival_state.kunoichis[min_id].pos))
+					{
+					case 2:
+					case 3:
+						switch (ts.rival_state.field[pos.row][pos.col])
+						{
+						case FLOOR:
+						case DANGEROUS_ZONE:
+							sels.add(pos);
+							break;
+						}
+						break;
+					}
+				}
+			}
+			if (sels.size() == 0) break;
+			ninjutsu_command.clear();
+			ninjutsu_command.type = NinjutsuType.DROP_ROCK_RIVAL_FIELD;
+			ninjutsu_command.pos = sels.get(sels.size() / 2);
+			break;
+		case 1:
+		case 2:
+			ninjutsu_command.clear();
+			ninjutsu_command.type = NinjutsuType.DROP_ROCK_RIVAL_FIELD;
+			ninjutsu_command.pos = atk_pos[min_id];
+			break;
+		}
+		
+		restoreField(ts.rival_state);
+		return ninjutsu_command.exists();
+	}
+	
+	private void computeAttacks(TurnState ts)
+	{
+		if (ts.my_state.ninja_enegy >= getNinjutsuCost(ts, NinjutsuType.DROP_ROCK_RIVAL_FIELD))
+		{
+			if (computeChanceDropRock(ts)) return;
+		}
+
+		if (old_ninjutsu_command.type != null) return;
+		
+		int en = ts.my_state.ninja_enegy - 2 * getNinjutsuCost(ts, emergencies[emergencies.length / 2]);
+		for (NinjutsuType type : attacks)
+		{
+			if (en < getNinjutsuCost(ts, type)) return;
+			
+			switch (type)
+			{
+			case DROP_ROCK_RIVAL_FIELD:
+				if (computeAttackDropRock(ts)) return;
+				break;
+			case THUNDERSTROKE_RIVAL_FIELD:
+				if (computeAttackThunder(ts)) return;
+				break;
+			case MAKE_RIVAL_DUMMY:
+				break;
+			case TURN_CUTTING:
+				if (computeAttackTurnCutting(ts)) return;
+				break;
+			}
+		}
+	}
+	
 	private boolean computeNinjutsu(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
 	{
 		if (ninjutsu_command.type != null) return false;
@@ -1295,6 +1546,8 @@ class AI
 		if (checkSemiEmergencies(ts, clean_field, clean_souls)) return true;
 		
 		// attack ninjutsu
+		computeAttacks(ts);
+		
 		return false;
 	}
 
