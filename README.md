@@ -5,6 +5,8 @@ CODE VS 5.0
 https://codevs.jp/  
 
 
-CODE VS 5.0用のAIを作るゾ！  
+１手でも先を読むAIを作ってみようと  
+
+無理ゲーだった
 
 
