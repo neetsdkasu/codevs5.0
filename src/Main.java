@@ -1177,7 +1177,7 @@ class AI
 		return dogs;
 	}
 	
-	private boolean computeMakeMyDummy(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi, List<RowCol> clean_souls)
+	private boolean computeMakeMyDummy(TurnState ts, FieldObject[][] clean_field, Unit dangerKunoichi, List<RowCol> clean_souls, boolean deep)
 	{
 		String[] tmp_cmds = Arrays.copyOf(kunoichi_commands, kunoichi_commands.length);
 		backupDogs(ts.my_state);
@@ -1186,7 +1186,8 @@ class AI
 		int[][] distanceTable = makeFieldSizeIntTable(ts.my_state);
 		int distance = getDistanceTable(ts.my_state, Arrays.asList(dangerKunoichi.pos), distanceTable);
 		
-		for (int k = 0; k < 2; k++)
+		int limit = deep ? distance + 1 : 2;
+		for (int k = 0; k < limit; k++)
 		{
 			for (int i = 1; i < distanceTable.length - 1; i++)
 			{
@@ -1269,7 +1270,7 @@ class AI
 				if (computeEmergencyThunder(ts, clean_field, dangerKunoichi, clean_souls)) break loop_label;
 				break;
 			case MAKE_MY_DUMMY:
-				if (computeMakeMyDummy(ts, clean_field, dangerKunoichi, clean_souls)) break loop_label;
+				if (computeMakeMyDummy(ts, clean_field, dangerKunoichi, clean_souls, false)) break loop_label;
 				break;
 			case TURN_CUTTING:
 				computeTurnCut(ts, clean_field, dangerKunoichi, clean_souls);
@@ -1277,7 +1278,11 @@ class AI
 			}
 		}
 		
-		return ninjutsu_command.exists();
+		if (ninjutsu_command.exists()) return true;
+		
+		if (ts.my_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.MAKE_MY_DUMMY)) return false;
+		
+		return computeMakeMyDummy(ts, clean_field, dangerKunoichi, clean_souls, true);
 	}
 	
 	private boolean checkParseDead(TurnState ts)
