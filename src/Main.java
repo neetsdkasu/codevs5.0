@@ -447,6 +447,62 @@ class AI
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
 		for (RowCol rc : fs.souls)
 		{
+			if (fs.field[rc.row][rc.col] == FieldObject.ROCK) continue;
+			if (fs.field[rc.row][rc.col] == FieldObject.WALL) continue;
+			table[rc.row][rc.col] = 3;
+			targetSoulTable[rc.row][rc.col] = rc;
+			cur.addFirst(rc);
+		}
+		int[] add_rows = {1, 0, -1,  0};
+		int[] add_cols = {0, 1,  0, -1};
+		int distance = 3;
+		while (cur.isEmpty() == false)
+		{
+			distance++;
+			next.clear();
+			for (RowCol rc : cur)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					RowCol addrc = rc.move(add_rows[i], add_cols[i]);
+					if (table[addrc.row][addrc.col] != 0) continue;
+					if (field[addrc.row][addrc.col] != FieldObject.FLOOR) continue;
+					table[addrc.row][addrc.col] = distance;
+					targetSoulTable[addrc.row][addrc.col] = targetSoulTable[rc.row][rc.col];
+					next.addFirst(addrc);
+				}
+			}
+			// swap cur next
+			temp = cur; cur = next; next = temp;
+		}
+		for (int i = 0; i < fs.field_size.row; i++)
+		{
+			for (int j = 0; j < fs.field_size.col; j++)
+			{
+				if (fs.field[i][j] == FieldObject.DOG)
+				{
+					table[i][j] = 1;
+					continue;
+				}
+				if (fs.field[i][j] == FieldObject.DANGEROUS_ZONE)
+				{
+					table[i][j] = 2;
+					continue;
+				}
+				if (table[i][j] != 0 || fs.field[i][j] != FieldObject.FLOOR) continue;
+				table[i][j] = (Integer.MAX_VALUE - 1) - kunoichi.pos.distanceTo(new RowCol(i, j));
+			}
+		}
+		return table;
+	}
+	
+	private int[][] findSoulDistanceTable2(FieldState fs, RowCol[][] targetSoulTable, Unit kunoichi)
+	{
+		FieldObject[][] field = fs.field;
+		int[][] table = makeFieldSizeIntTable(fs);
+		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
+		for (RowCol rc : fs.souls)
+		{
 			if (fs.field[rc.row][rc.col] != FieldObject.FLOOR)
 			{
 				if (Arrays.asList(
@@ -504,6 +560,7 @@ class AI
 		}
 		return table;
 	}
+	
 	
 	private void mappingDogs(FieldState fs)
 	{
