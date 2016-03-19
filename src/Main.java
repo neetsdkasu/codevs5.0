@@ -405,6 +405,7 @@ class AI
 		{
 			kunoichi_commands[i] = "";
 		}
+		ts.my_state.souls.sort( (a, b) -> a.hashCode() - b.hashCode() );
 	}
 	
 	public boolean existsNinjutsu()
@@ -445,8 +446,13 @@ class AI
 		FieldObject[][] field = fs.field;
 		int[][] table = makeFieldSizeIntTable(fs);
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
-		for (RowCol rc : fs.souls)
+		int divsouls = fs.souls.size() / fs.kunoichis.length;
+		int divsouls_lower = kunoichi.id * divsouls;
+		int divsouls_upper = divsouls_lower + divsouls;
+		for (int i = 0; i < fs.souls.size(); i++)
 		{
+			if (i < divsouls_lower || i >= divsouls_upper) continue;
+			RowCol rc = fs.souls.get(i);
 			if (fs.field[rc.row][rc.col] == FieldObject.ROCK) continue;
 			if (fs.field[rc.row][rc.col] == FieldObject.WALL) continue;
 			table[rc.row][rc.col] = 3;
