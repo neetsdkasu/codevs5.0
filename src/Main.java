@@ -1296,26 +1296,35 @@ class AI
 						for (Unit kunoichi : ts.my_state.kunoichis)
 						{
 							if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
-							ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
+							if (kunoichi.id == dangerKunoichi.id)
+							{
+								ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+							}
+							else
+							{
+								ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
+							}
 							break;
 						}
 					}
-					for (Unit dog : ts.my_state.dogs)
+					if (sameFloor == false)
 					{
 						for (Unit kunoichi : ts.my_state.kunoichis)
 						{
-							if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
-							ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
-							if (sameFloor) continue;
 							if (kunoichi.id == dangerKunoichi.id) continue;
-							if (ts.my_state.field[dog.pos.row + 1][dog.pos.col] == FieldObject.FLOOR)
-								ts.my_state.field[dog.pos.row + 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
-							if (ts.my_state.field[dog.pos.row - 1][dog.pos.col] == FieldObject.FLOOR)
-								ts.my_state.field[dog.pos.row - 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
-							if (ts.my_state.field[dog.pos.row][dog.pos.col + 1] == FieldObject.FLOOR)
-								ts.my_state.field[dog.pos.row][dog.pos.col + 1] = FieldObject.DANGEROUS_ZONE;
-							if (ts.my_state.field[dog.pos.row][dog.pos.col - 1] == FieldObject.FLOOR)
-								ts.my_state.field[dog.pos.row][dog.pos.col - 1] = FieldObject.DANGEROUS_ZONE;
+							for (Unit dog : ts.my_state.dogs)
+							{
+								if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
+								ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+								if (ts.my_state.field[dog.pos.row + 1][dog.pos.col] == FieldObject.FLOOR)
+									ts.my_state.field[dog.pos.row + 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
+								if (ts.my_state.field[dog.pos.row - 1][dog.pos.col] == FieldObject.FLOOR)
+									ts.my_state.field[dog.pos.row - 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
+								if (ts.my_state.field[dog.pos.row][dog.pos.col + 1] == FieldObject.FLOOR)
+									ts.my_state.field[dog.pos.row][dog.pos.col + 1] = FieldObject.DANGEROUS_ZONE;
+								if (ts.my_state.field[dog.pos.row][dog.pos.col - 1] == FieldObject.FLOOR)
+									ts.my_state.field[dog.pos.row][dog.pos.col - 1] = FieldObject.DANGEROUS_ZONE;
+							}
 						}
 					}
 					for (Unit kunoichi : ts.my_state.kunoichis)
