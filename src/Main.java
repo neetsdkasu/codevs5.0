@@ -914,6 +914,10 @@ class AI
 	
 	private int getLabelingFloor(FieldState fs, int[][] labelTable)
 	{
+		for (int i = 0; i < labelTable.length; i++)
+		{
+			Arrays.fill(labelTable[i], 0);
+		}
 		int label = 0;
 		for (int i = 0; i < fs.field_size.row; i++)
 		{
@@ -1258,6 +1262,19 @@ class AI
 		int[][] distanceTable = makeFieldSizeIntTable(ts.my_state);
 		int distance = getDistanceTable(ts.my_state, Arrays.asList(dangerKunoichi.pos), distanceTable);
 		
+		int[][] labeledFloor = makeFieldSizeIntTable(ts.my_state);
+		getLabelingFloor(ts.my_state, labeledFloor);
+		List<RowCol> base_targets = new ArrayList<>();
+		boolean sameFloor = true;
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			if (kunoichi.id == dangerKunoichi.id) continue;
+			if (labeledFloor[kunoichi.pos.row][kunoichi.pos.col] == labeledFloor[dangerKunoichi.pos.row][dangerKunoichi.pos.col]) continue;
+			base_targets.add(kunoichi.pos);
+			sameFloor = false;
+		}
+		List<RowCol> targets = new ArrayList<>();
+		
 		int limit = deep ? distance + 1 : 2;
 		for (int k = 0; k < limit; k++)
 		{
@@ -1270,15 +1287,35 @@ class AI
 					RowCol pos = new RowCol(i, j);
 					copyField(clean_field, ts.my_state.field);
 					ts.my_state.souls = new ArrayList<>(clean_souls);
-					List<Unit> dogs = getMovedDogs(ts.my_state, Arrays.asList(pos));
-					ts.my_state.dogs = dogs.toArray(new Unit[0]);
+					targets.clear();
+					targets.addAll(base_targets);
+					targets.add(pos);
+					List<Unit> dogs = getMovedDogs(ts.my_state, targets);
 					for (Unit dog : dogs)
 					{
 						for (Unit kunoichi : ts.my_state.kunoichis)
 						{
 							if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
-							ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+							ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
 							break;
+						}
+					}
+					for (Unit dog : ts.my_state.dogs)
+					{
+						for (Unit kunoichi : ts.my_state.kunoichis)
+						{
+							if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
+							ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
+							if (sameFloor) continue;
+							if (kunoichi.id == dangerKunoichi.id) continue;
+							if (ts.my_state.field[dog.pos.row + 1][dog.pos.col] == FieldObject.FLOOR)
+								ts.my_state.field[dog.pos.row + 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
+							if (ts.my_state.field[dog.pos.row - 1][dog.pos.col] == FieldObject.FLOOR)
+								ts.my_state.field[dog.pos.row - 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
+							if (ts.my_state.field[dog.pos.row][dog.pos.col + 1] == FieldObject.FLOOR)
+								ts.my_state.field[dog.pos.row][dog.pos.col + 1] = FieldObject.DANGEROUS_ZONE;
+							if (ts.my_state.field[dog.pos.row][dog.pos.col - 1] == FieldObject.FLOOR)
+								ts.my_state.field[dog.pos.row][dog.pos.col - 1] = FieldObject.DANGEROUS_ZONE;
 						}
 					}
 					for (Unit kunoichi : ts.my_state.kunoichis)
@@ -1286,21 +1323,35 @@ class AI
 						kunoichi_commands[kunoichi.id] = "";
 						computeKunoichiRoot(kunoichi, ts.my_state, 2);
 					}
-					Unit danger = checkDanger(ts.my_state);
-					if (danger != null) continue;
+					
+					//Unit danger = checkDanger(ts.my_state);
+					//if (danger != null) continue;
 					
 					for (int yy = 0; yy < ts.my_state.field_size.row; yy++)
 					{
 						for (int xx = 0; xx < ts.my_state.field_size.col; xx++)
 						{
-							if (ts.my_state.field[yy][xx] == FieldObject.DOG)
+							switch (ts.my_state.field[yy][xx])
 							{
+							case DOG:
+							case DANGEROUS_ZONE:
 								ts.my_state.field[yy][xx] = FieldObject.FLOOR;
+								break;
 							}
 						}
 					}
-					ts.my_state.dogs = dogs_backup_stack.peekFirst();
-					dogs = getMovedDogs(ts.my_state, Arrays.asList(pos));
+					getLabelingFloor(ts.my_state, labeledFloor);
+					targets.clear();
+					for (Unit kunoichi : ts.my_state.kunoichis)
+					{
+						if (kunoichi.id == dangerKunoichi.id) continue;
+						List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+						RowCol to = path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+						if (labeledFloor[to.row][to.col] == labeledFloor[dangerKunoichi.pos.row][dangerKunoichi.pos.col]) continue;
+						targets.add(to);
+					}
+					targets.add(pos);
+					dogs = getMovedDogs(ts.my_state, targets);
 					for (Unit kunoichi : ts.my_state.kunoichis)
 					{
 						List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
