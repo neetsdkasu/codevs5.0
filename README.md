@@ -3,8 +3,8 @@ CODE VS 5.0 My AI
 
 CODE VS 5.0  
 https://codevs.jp/  
-
-
+ttp://web.archive.org/web/20160322214853/https://codevs.jp/  
+  
 CODE VS 5.0用のAIを作るゾ！  
 
 
