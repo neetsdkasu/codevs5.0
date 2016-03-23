@@ -1555,6 +1555,129 @@ class AI
 		return false;
 	}
 	
+	private boolean recurVirtualRock(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls, RowCol rockpos)
+	{
+		String[] tmp_cmds = Arrays.copyOf(kunoichi_commands, kunoichi_commands.length);
+		for (int i = 0; i < kunoichi_commands.length; i++) kunoichi_commands[i] = "";
+		backupField(ts.my_state);
+		
+		copyField(clean_field, ts.my_state.field);
+		ts.my_state.souls = new ArrayList<>(clean_souls);
+		
+		ts.my_state.field[rockpos.row][rockpos.col] = FieldObject.VIRTUAL_ROCK;
+		
+		computeInner(ts);
+		
+		if (ninjutsu_command.exists())
+		{
+			dropBackupedField(1);
+			return true;
+		}
+		
+		if (kunoichi_commands[0].length() != 0)
+		{
+			dropBackupedField(1);
+			return true;
+		}
+		
+		kunoichi_commands = tmp_cmds;
+		restoreField(ts.my_state);
+		return false;
+	}
+	
+	private boolean checkSemiEmergencies2(TurnState ts, FieldObject[][] clean_field, List<RowCol> clean_souls)
+	{
+		if (ts.rival_state.ninja_enegy < getNinjutsuCost(ts, NinjutsuType.DROP_ROCK_RIVAL_FIELD)) return false;
+		
+		
+		copyField(clean_field, ts.my_state.field);
+		FieldObject[][] field = ts.my_state.field;
+		
+		mappingDogs(ts.my_state);
+		
+		for (Unit kunoichi : ts.my_state.kunoichis)
+		{
+			List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
+			if (path.isEmpty()) continue;
+			RowCol pos = path.get(0), df;
+			if (field[pos.row][pos.col] == FieldObject.ROCK)
+			{
+				if (path.size() == 1)
+				{
+					for (Unit dog : ts.my_state.dogs)
+					{
+						if (dog.pos.distanceTo(kunoichi.pos) > 1) continue;
+						// danger
+						df = kunoichi.pos.subtractFrom(pos);
+						if (recurVirtualRock(ts, clean_field, clean_souls, pos.move(df.row, df.col))) return true;
+					}
+				}
+				else
+				{
+					df = pos.subtractFrom(path.get(1));
+					pos = kunoichi.pos.move(df.row, df.col);
+					if (field[pos.row][pos.col] == FieldObject.ROCK)
+					{
+						RowCol rc = pos.move(df.row, df.col);
+						switch (field[rc.row][rc.col])
+						{
+						case ROCK:
+						case VIRTUAL_ROCK:
+						case WALL:
+							if (field[kunoichi.pos.row][kunoichi.pos.col] == FieldObject.DANGEROUS_ZONE)
+							{
+								pos = path.get(0);
+								df = kunoichi.pos.subtractFrom(pos);
+								if (recurVirtualRock(ts, clean_field, clean_souls, pos.move(df.row, df.col))) return true;
+							}
+							break;
+						default:
+							for (Unit dog : ts.my_state.dogs)
+							{
+								if (dog.pos.distanceTo(pos) > 1) continue;
+								pos = path.get(0);
+								df = kunoichi.pos.subtractFrom(pos);
+								if (recurVirtualRock(ts, clean_field, clean_souls, pos.move(df.row, df.col))) return true;
+								break;
+							}
+							break;
+						}
+					}
+					df = pos.subtractFrom(path.get(1));
+					pos = kunoichi.pos.move(df.row, df.col);
+					for (Unit dog : ts.my_state.dogs)
+					{
+						if (dog.pos.distanceTo(pos) > 1) continue;
+						pos = path.get(0);
+						df = kunoichi.pos.subtractFrom(pos);
+						if (recurVirtualRock(ts, clean_field, clean_souls, pos.move(df.row, df.col))) return true;
+						break;
+					}
+				}
+				pos = path.get(0);
+				df = kunoichi.pos.subtractFrom(pos);
+				field[pos.row][pos.col] = FieldObject.FLOOR;
+				pos = pos.move(df.row, df.col);
+				field[pos.row][pos.col] = FieldObject.ROCK;
+			}
+			if (path.size() == 1) continue;
+			pos = path.get(1);
+			if (field[pos.row][pos.col] != FieldObject.ROCK) continue;
+			pos = path.get(0);
+			for (Unit dog : ts.my_state.dogs)
+			{
+				if (dog.pos.distanceTo(pos) > 1) continue;
+				df = pos.subtractFrom(path.get(1));
+				pos = path.get(1);
+				if (recurVirtualRock(ts, clean_field, clean_souls, pos.move(df.row, df.col))) return true;
+				break;
+			}
+		}
+		
+		
+		return false;
+	}
+	
 	private boolean computeAttackThunder(TurnState ts)
 	{
 		List<RowCol> list = new ArrayList<>();
@@ -1825,6 +1948,8 @@ class AI
 		if (computeEmergencies(ts, clean_field, clean_souls, checkDanger(ts.my_state))) return true;
 		
 		if (checkSemiEmergencies(ts, clean_field, clean_souls)) return true;
+		
+		if (checkSemiEmergencies2(ts, clean_field, clean_souls)) return true;
 		
 		// attack ninjutsu
 		computeAttacks(ts);
