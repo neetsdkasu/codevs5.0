@@ -445,10 +445,26 @@ class AI
 		FieldObject[][] field = fs.field;
 		int[][] table = makeFieldSizeIntTable(fs);
 		Deque<RowCol> cur = new ArrayDeque<>(), next = new ArrayDeque<>(), temp;
+		loop_label:
 		for (RowCol rc : fs.souls)
 		{
-			if (fs.field[rc.row][rc.col] == FieldObject.ROCK) continue;
-			if (fs.field[rc.row][rc.col] == FieldObject.WALL) continue;
+			if (fs.field[rc.row][rc.col] == FieldObject.ROCK)
+			{
+				for (Unit dog : fs.dogs)
+				{
+					if (rc.distanceTo(dog.pos) < 4) continue loop_label;
+				}
+				if ((fs.field[rc.row + 1][rc.col] != FieldObject.FLOOR
+						|| fs.field[rc.row - 1][rc.col] != FieldObject.FLOOR)
+					&&
+					(fs.field[rc.row][rc.col + 1] != FieldObject.FLOOR
+						|| fs.field[rc.row][rc.col - 1] != FieldObject.FLOOR)
+					)
+				{
+					continue;
+				}
+			}
+			else if (fs.field[rc.row][rc.col] == FieldObject.WALL) continue;
 			table[rc.row][rc.col] = 3;
 			targetSoulTable[rc.row][rc.col] = rc;
 			cur.addFirst(rc);
