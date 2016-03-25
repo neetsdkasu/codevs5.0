@@ -1239,8 +1239,10 @@ class AI
 			temp.set(i, new ArrayList<>());
 		}
 		
+		int[][] dogTable = makeFieldSizeIntTable(fs);
 		for (Unit dog : fs.dogs)
 		{
+			dogTable[dog.pos.row][dog.pos.col] = 1;
 			int k = distanceTable[dog.pos.row][dog.pos.col];
 			if (k > 0) // k == 0 is on other floor
 			{
@@ -1264,8 +1266,11 @@ class AI
 				for (int j = 0; j < 4; j++)
 				{
 					if (d != distanceTable[pos.row + add_row[j]][pos.col + add_col[j]]) continue;
-					pos = pos.move(add_row[j], add_col[j]);
-					distanceTable[pos.row][pos.col] = 0;
+					RowCol tmp = pos.move(add_row[j], add_col[j]);
+					if (dogTable[tmp.row][tmp.col] == 1) continue;
+					dogTable[pos.row][pos.col] = 0;
+					pos = tmp;
+					dogTable[pos.row][pos.col] = 1;
 					break;
 				}
 				dogs.add(new Unit(dog.id, pos));
@@ -1305,7 +1310,7 @@ class AI
 				loop_label:
 				for (int j = 1; j < distanceTable[0].length - 1; j++)
 				{
-					if (distanceTable[i][j] != distance) continue;
+					if (distanceTable[i][j] != k + 1) continue;
 					RowCol pos = new RowCol(i, j);
 					copyField(clean_field, ts.my_state.field);
 					ts.my_state.souls = new ArrayList<>(clean_souls);
@@ -1317,7 +1322,7 @@ class AI
 					{
 						for (Unit kunoichi : ts.my_state.kunoichis)
 						{
-							if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
+							if (kunoichi.pos.distanceTo(dog.pos) > 4) continue;
 							if (kunoichi.id == dangerKunoichi.id)
 							{
 								ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
@@ -1336,7 +1341,7 @@ class AI
 							if (kunoichi.id == dangerKunoichi.id) continue;
 							for (Unit dog : ts.my_state.dogs)
 							{
-								if (kunoichi.pos.distanceTo(dog.pos) > 3) continue;
+								if (kunoichi.pos.distanceTo(dog.pos) > 4) continue;
 								ts.my_state.field[dog.pos.row][dog.pos.col] = FieldObject.DOG;
 								if (ts.my_state.field[dog.pos.row + 1][dog.pos.col] == FieldObject.FLOOR)
 									ts.my_state.field[dog.pos.row + 1][dog.pos.col] = FieldObject.DANGEROUS_ZONE;
@@ -1375,9 +1380,32 @@ class AI
 					targets.clear();
 					for (Unit kunoichi : ts.my_state.kunoichis)
 					{
-						if (kunoichi.id == dangerKunoichi.id) continue;
 						List<RowCol> path = parseRoot(kunoichi.pos, kunoichi_commands[kunoichi.id]);
 						RowCol to = path.isEmpty() ? kunoichi.pos : path.get(path.size() - 1);
+						
+						if (path.size() > 0)
+						{
+							RowCol fst = path.get(0);
+							if (clean_field[fst.row][fst.col] == FieldObject.ROCK)
+							{
+								RowCol df = kunoichi.pos.subtractFrom(fst);
+								RowCol ov = fst.move(df.row, df.col);
+								for (Unit u : ts.my_state.dogs) if (ov.equals(u.pos)) continue loop_label;
+								for (Unit u : ts.my_state.kunoichis) if (ov.equals(u.pos)) continue loop_label;
+							}
+							if (path.size() > 1)
+							{
+								if (clean_field[to.row][to.col] == FieldObject.ROCK)
+								{
+									RowCol df = fst.subtractFrom(to);
+									RowCol ov = to.move(df.row, df.col);
+									for (Unit u : ts.my_state.dogs) if (ov.equals(u.pos)) continue loop_label;
+									for (Unit u : ts.my_state.kunoichis) if (ov.equals(u.pos)) continue loop_label;
+								}
+							}
+						}
+						
+						if (kunoichi.id == dangerKunoichi.id) continue;
 						if (labeledFloor[to.row][to.col] == labeledFloor[dangerKunoichi.pos.row][dangerKunoichi.pos.col]) continue;
 						targets.add(to);
 					}
