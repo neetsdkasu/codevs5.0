@@ -864,7 +864,6 @@ class AI
 					{
 						ng_flag[i] = true;
 					}
-					from = rc;
 					tc = rc.move(df.row, df.col);
 					if (tc.row < 0 || tc.col < 0
 						|| tc.row >= fs.field_size.row
@@ -890,6 +889,7 @@ class AI
 						}
 					}
 				}
+				from = rc;
 			}
 			reachs[i] = path.isEmpty() ? from : path.get(path.size() - 1);
 		}
